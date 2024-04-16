@@ -10,4 +10,5 @@ class Input:
         self.mx = 0
         self.my = 0
         self.getin = 0
+        self.openinv = 0
         self.hbrake = 0

@@ -13,7 +13,7 @@ class Game(pyglet.window.Window):
         self._inputo = Input()
         self._fps_display = pyglet.window.FPSDisplay(window=self)
         super().__init__(self._SIZE_X*self._window_scale, self._SIZE_Y*self._window_scale, caption="AAA", fullscreen=False)
-        self.scene = MainGameScene(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo)
+        self.scene = MainGameScene(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
 
     def on_draw(self):
         self.switch_to()
@@ -35,6 +35,8 @@ class Game(pyglet.window.Window):
                 self._inputo.hbrake = 1
             case key.F:
                 self._inputo.getin = 1
+            case key.TAB:
+                self._inputo.openinv = 1
 
     def on_key_release(self, symbol, modifiers):
         match(symbol):
@@ -50,6 +52,8 @@ class Game(pyglet.window.Window):
                 self._inputo.hbrake = 0
             case key.F:
                 self._inputo.getin = 0
+            case key.TAB:
+                self._inputo.openinv = 0
 
     def on_mouse_motion(self, x, y, dx, dy):
         self._inputo.mx = x

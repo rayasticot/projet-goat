@@ -188,13 +188,13 @@ class PlayerWalker:
         if acc_x_ow == None or acc_y_ow == None:
             acc_x, acc_y = 0, 0
             if inputo.rg:
-                acc_x = 32*delta_t
+                acc_x = 8*delta_t
             if inputo.le:
-                acc_x = -32*delta_t
+                acc_x = -8*delta_t
             if inputo.up:
-                acc_y = 32*delta_t
+                acc_y = 8*delta_t
             if inputo.dw:
-                acc_y = -32*delta_t
+                acc_y = -8*delta_t
         else:
             acc_x, acc_y = acc_x_ow, acc_y_ow
         acc_inten = np.sqrt(acc_x**2 + acc_y**2)
@@ -241,7 +241,7 @@ class Player:
                     self.playercar.stop()
                     self.playerwalker.sprite.visible = False
                 if car_dir_inten < 256:
-                    car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*32*delta_t, (car_dir_y/car_dir_inten)*32*delta_t
+                    car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*8*delta_t, (car_dir_y/car_dir_inten)*8*delta_t
                     self.playerwalker.update(inputo, delta_t, car_dir_x, car_dir_y)
                 else:
                     self.playerwalker.update(inputo, delta_t)

@@ -190,7 +190,7 @@ class WorldGenGroup(pyglet.graphics.Group):
 
 class WorldGen:
     def __init__(self, scale, size_x, size_y):
-        mape = pyglet.image.load("map/map_rough.png")
+        mape = pyglet.image.load("map/map.png")
         tiles = (pyglet.image.load("img/tiles/eau.png"),
                  pyglet.image.load("img/tiles/tile_grass0.png"),
                  pyglet.image.load("img/tiles/tile_grass0_canc.png"),

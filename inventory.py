@@ -97,7 +97,7 @@ class GridItem(pyglet.gui.WidgetBase):
         self._inventory.item_pressed(self.item_index, self.i_type)
 
     def mouse_release(self, x, y, buttons, modifiers):
-        if not self._enabled or not self._pressed:
+        if not self._enabled or not self._check_hit(x, y):
             return
         self._inventory.item_released(self.item_index, self.i_type)
 
@@ -113,7 +113,11 @@ class GridItem(pyglet.gui.WidgetBase):
             else:
                 self._sprite.image = self._empty_t
 
-    def update(self, inputo, scale):
+    def update(self, inputo, scale, press, release):
+        if press:
+            self.mouse_press(inputo.mx//scale, inputo.my//scale, None, None)
+        if release:
+            self.mouse_release(inputo.mx//scale, inputo.my//scale, None, None)
         self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
     
     def enable(self, value):
@@ -200,6 +204,11 @@ class Inventory:
         self.active = False
         self.page = 0
         self.cursor_index = 0
+        self.last_lclick = 0
+        self.pressed_item_type = None
+        self.pressed_item_index = None
+        self.release_item_type = None
+        self.release_item_index = None
         self.create_widgets()
 
     def switch_page(self, ammount):
@@ -229,7 +238,7 @@ class Inventory:
 
         self.HAND_BE_X = center_x - 64*len(self.widget_equi) + 32
         for i in range(len(self.widget_hand)):
-            self.widget_hand[i] = GridItem(self.HAND_BE_X+i*128, 8, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 3, self.batch)
+            self.widget_hand[i] = GridItem(self.HAND_BE_X+i*128, 8, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 5, self.batch)
 
         self.hand_text0 = pyglet.text.Label("arme", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+32, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
         self.hand_text1 = pyglet.text.Label("objet", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+128+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
@@ -245,6 +254,20 @@ class Inventory:
             if item == None:
                 return i
         return None
+
+
+    def list_from_type(self, i_type):
+        match i_type:
+            case 0:
+                return self.arms
+            case 1:
+                return self.equi
+            case 2:
+                return self.cons
+            case 3:
+                return self.keys
+            case 5:
+                return self.hand
 
 
     def pickup(self, item) -> bool: # Vrai si ramassé sans problème, Faux si pas ramassé
@@ -323,9 +346,21 @@ class Inventory:
         if inv1 == self.keys or inv1 == self.hand:
             return
         self.finalswitch(inv1, index1, inv2, index2)
+    
+
+    def item_pressed(self, index, i_type):
+        self.released_item_index = None
+        self.released_item_type = None
+        self.pressed_item_index = index
+        self.pressed_item_type = i_type
 
 
-    def place_items(self):
+    def item_released(self, index, i_type):
+        if self.pressed_item_index != None and self.pressed_item_type != None:
+            self.switchup(self.list_from_type(self.pressed_item_type), self.pressed_item_index, self.list_from_type(i_type), index)
+
+
+    def place_items(self, inputo, scale):
         e_arms, e_equi, e_cons, e_keys, e_bull = False, False, False, False, False
         match self.page:
             case 0:
@@ -342,40 +377,71 @@ class Inventory:
         for i in range(len(self.arms)):
             if self.arms[i] == None:
                 continue
-            self.arms[i].sprite.x = self.ARMS_BE_X+i*64
-            self.arms[i].sprite.y = self.ARMS_BE_Y
+            if i == self.pressed_item_index and self.pressed_item_type == 0:
+                self.arms[i].sprite.x = (inputo.mx//scale)-32
+                self.arms[i].sprite.y = (inputo.my//scale)-32
+            else:
+                self.arms[i].sprite.x = self.ARMS_BE_X+i*64
+                self.arms[i].sprite.y = self.ARMS_BE_Y
             self.arms[i].sprite.visible = e_arms
 
         for i in range(len(self.equi)):
             if self.equi[i] == None:
                 continue
-            self.equi[i].sprite.x = self.EQUI_BE_X+i*64
-            self.equi[i].sprite.y = self.EQUI_BE_Y
+            if i == self.pressed_item_index and self.pressed_item_type == 1:
+                self.equi[i].sprite.x = (inputo.mx//scale)-32
+                self.equi[i].sprite.y = (inputo.my//scale)-32
+            else:
+                self.equi[i].sprite.x = self.EQUI_BE_X+i*64
+                self.equi[i].sprite.y = self.EQUI_BE_Y
             self.equi[i].sprite.visible = e_equi
 
         for i in range(len(self.cons)):
             if self.cons[i] == None:
                 continue
-            self.cons[i].sprite.x = self.CONS_BE_X+(i%7)*64
-            self.cons[i].sprite.y = self.CONS_BE_Y+(i//7)*64
+            if i == self.pressed_item_index and self.pressed_item_type == 2:
+                self.cons[i].sprite.x = (inputo.mx//scale)-32
+                self.cons[i].sprite.y = (inputo.my//scale)-32
+            else:
+                self.cons[i].sprite.x = self.CONS_BE_X+(i%7)*64
+                self.cons[i].sprite.y = self.CONS_BE_Y+(i//7)*64
             self.cons[i].sprite.visible = e_cons
 
         for i in range(len(self.keys)):
             if self.keys[i] == None:
                 continue
-            self.keys[i].sprite.x = self.CONS_BE_X+(i%7)*64
-            self.keys[i].sprite.y = self.CONS_BE_Y+(i//7)*64
+            if i == self.pressed_item_index and self.pressed_item_type == 3:
+                self.keys[i].sprite.x = (inputo.mx//scale)-32
+                self.keys[i].sprite.y = (inputo.my//scale)-32
+            else:
+                self.keys[i].sprite.x = self.CONS_BE_X+(i%7)*64
+                self.keys[i].sprite.y = self.CONS_BE_Y+(i//7)*64
             self.keys[i].sprite.visible = e_keys
 
         for i in range(len(self.hand)):
             if self.hand[i] == None:
                 continue
-            self.hand[i].sprite.x = self.HAND_BE_X+i*128
-            self.hand[i].sprite.y = 8
-            self.hand[i].sprite.visible = e_keys
+            if i == self.pressed_item_index and self.pressed_item_type == 5:
+                self.hand[i].sprite.x = (inputo.mx//scale)-32
+                self.hand[i].sprite.y = (inputo.my//scale)-32
+            else:
+                self.hand[i].sprite.x = self.HAND_BE_X+i*128
+                self.hand[i].sprite.y = 8
+            self.hand[i].sprite.visible = True
 
 
     def update(self, inputo, scale):
+        press, release = 0, 0
+        if self.last_lclick != inputo.lclick:
+            if inputo.lclick:
+                press = 1
+                self.pressed_item_index = None
+                self.pressed_item_type = None
+            else:
+                release = 1
+                self.released_item_index = None
+                self.released_item_type = None
+            self.last_lclick = inputo.lclick
         e_arms, e_equi, e_cons, e_keys, e_bull = False, False, False, False, False
         match self.page:
             case 0:
@@ -399,38 +465,45 @@ class Inventory:
             else:
                 widget.presence = False
             widget.enable(e_arms)
-            widget.update(inputo, scale)
+            widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_equi):
             if self.equi[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_equi)
-            widget.update(inputo, scale)
+            widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_cons):
             if self.cons[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_cons)
-            widget.update(inputo, scale)
+            widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_keys):
             if self.keys[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_keys)
-            widget.update(inputo, scale)
+            widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_hand):
             if self.hand[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(True)
-            widget.update(inputo, scale)
+            widget.update(inputo, scale, press, release)
         if self.arrow_button_l.update(inputo, scale):
             self.switch_page(-1)
         if self.arrow_button_r.update(inputo, scale):
             self.switch_page(1)
         
-        self.place_items()
+        if release:
+            self.pressed_item_index = None
+            self.pressed_item_type = None
+        if press:
+            self.released_item_index = None
+            self.released_item_type = None
+        
+        self.place_items(inputo, scale)

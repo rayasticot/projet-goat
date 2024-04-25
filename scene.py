@@ -3,7 +3,7 @@ from pyglet.gl import *
 from abc import ABC, abstractmethod
 from world_gen import WorldGen
 from player import Player
-from inventory import Inventory
+from inventory import Inventory, Weapon, WEAPON_MODELS
 
 
 class Scene(ABC):
@@ -32,6 +32,9 @@ class MainGameScene(Scene):
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
         pyglet.clock.schedule_interval(self.update, 1/60)
+
+        weapon = Weapon(WEAPON_MODELS[0], False, 0, 0, 0, 0)
+        print(self.inventory.pickup(weapon))
 
         #self.inventory.pickup_item()
 

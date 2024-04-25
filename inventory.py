@@ -4,58 +4,74 @@ from dataclasses import dataclass
 import json
 
 
-#BULLET_TYPE = ("9mm")
-
-ITEM_SPRITES = (
-    pyglet.image.load("img/items/ak.png")
+ITEM_IMAGES = (
+    pyglet.image.load("img/items/ak.png"),
+    pyglet.image.load("img/items/9mm.png"),
+    pyglet.image.load("img/items/7.62mm.png")
 )
+BULLET_IMAGE = {
+    "9mm": 1,
+    "7.62mm": 2
+}
 
 
-@dataclass
-class Item:
-    sprite: pyglet.sprite.Sprite
-    name: str
-    desc: str
-    weight: float
-    equipable: bool
+class Item:    
+    def __init__(self, iteminfo, itype, image_index, name, desc, weight):
+        if not iteminfo:
+            self.itype = itype
+            self.sprite = pyglet.sprite.Sprite(img=ITEM_IMAGES[image_index])
+            self.name = name
+            self.desc = desc
+            self.weight = weight
+            return
+        self.itype = iteminfo["itype"]
+        self.sprite = pyglet.sprite.Sprite(img=ITEM_IMAGES[iteminfo["image"]])
+        self.name = iteminfo["name"]
+        self.desc = iteminfo["desc"]
+        self.weight = iteminfo["weight"]
 
 
-@dataclass
 class WeaponModel:
-    sprite_index: int
-    name: str
-    desc: str
-    weight: float
-    capacity: int
-    bullet_type: int
-    rate: float
-    reach: int
-    accuracy: float
-    damage: float
+    def __init__(self, modelinfo):
+        self.image_index = modelinfo["image"]
+        self.name = modelinfo["name"]
+        self.desc = modelinfo["desc"]
+        self.weight = modelinfo["weight"]
+        self.capacity = modelinfo["capacity"]
+        self.bullet_type = modelinfo["bullet_type"]
+        self.rate = modelinfo["rate"]
+        self.reach = modelinfo["reach"]
+        self.accuracy = modelinfo["accuracy"]
+        self.damage = modelinfo["damage"]
 
 
-@dataclass
-class Weapon(Item):
-    model: WeaponModel
-    loaded: int
-    rate_damaged: float
-    reach_damaged: float
-    accuracy_damaged: float
-    damage_damaged: float
+class Weapon(Item):    
+    def __init__(self, model, loaded, rate_dmg, reach_dmg, accuracy_dmg, damage_dmg):
+        super().__init__(None, 0, model.image_index, model.name, model.desc, model.weight)
+        self.loaded = loaded
+        self.rate_dmg = rate_dmg
+        self.reach_dmg = reach_dmg
+        self.accuracy_dmg = accuracy_dmg
+        self.damage_dmg = damage_dmg
 
 
-def load_weapon_models(filename):
-    models = ()
-    with open(filename, "r") as fileread:
-        fileloaded = json.load(fileread)
-        for model in fileloaded["models"]:
-            models = models + WeaponModel(pyglet.image.load(model["sprite"]), model["name"], model["desc"],\
-                model["weight"], model["size_x"], model["size_y"], True, model["capacity"], model["bullet_type"],\
-                model["rate"], model["reach"], model["accuracy"], model["damage"])
-    return models
+class BulletBox(Item):
+    def __init__(self, btype, ammount):
+        super().__init__(None, 4, BULLET_IMAGE[btype], btype, "", 0)
+        self.btype = btype
+        self.ammount = ammount
 
 
-#WEAPON_MODELS = load_weapon_models("item/weapon_models.json")
+def load_weapons_models(filename):
+    models = []
+    with open(filename, "r") as file:
+        data = json.load(file)
+        for model in data["models"]:
+            models.append(WeaponModel(model))
+    return tuple(models)
+
+
+WEAPON_MODELS = load_weapons_models("item/weapon_models.json")
 
 
 class GridItem(pyglet.gui.WidgetBase):
@@ -99,14 +115,6 @@ class GridItem(pyglet.gui.WidgetBase):
 
     def update(self, inputo, scale):
         self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
-
-    def set_status(self, occupied):
-        if occupied:
-            self._sprite.image = self._filled
-            self.presence = True
-        else:
-            self._sprite.image = self._empty
-            self.presence = False
     
     def enable(self, value):
         self._enabled = value
@@ -201,35 +209,170 @@ class Inventory:
     def create_widgets(self):
         center_x = self._SIZE_X/2
         center_y = self._SIZE_Y/2
-        arms_be_x = center_x - 32*len(self.widget_arms)
-        arms_be_y = center_y - 32
+        self.ARMS_BE_X = center_x - 32*len(self.widget_arms)
+        self.ARMS_BE_Y = center_y - 32
         for i in range(len(self.widget_arms)):
-            self.widget_arms[i] = GridItem(arms_be_x+i*64, arms_be_y, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 0, self.batch)
+            self.widget_arms[i] = GridItem(self.ARMS_BE_X+i*64, self.ARMS_BE_Y, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 0, self.batch)
 
-        equi_be_x = center_x - 32*len(self.widget_equi)
-        equi_be_y = center_y - 32
+        self.EQUI_BE_X = center_x - 32*len(self.widget_equi)
+        self.EQUI_BE_Y = center_y - 32
         for i in range(len(self.widget_equi)):
-            self.widget_equi[i] = GridItem(equi_be_x+i*64, equi_be_y, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 1, self.batch)
+            self.widget_equi[i] = GridItem(self.EQUI_BE_X+i*64, self.EQUI_BE_Y, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 1, self.batch)
 
-        cons_be_x = center_x - 32*7
-        cons_be_y = center_y - 32*2
+        self.CONS_BE_X = center_x - 32*7
+        self.CONS_BE_Y = center_y - 32*2
         for i in range(len(self.widget_cons)):
-            self.widget_cons[i] = GridItem(cons_be_x+(i%7)*64, cons_be_y+(i//7)*64, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 2, self.batch)
+            self.widget_cons[i] = GridItem(self.CONS_BE_X+(i%7)*64, self.CONS_BE_Y+(i//7)*64, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 2, self.batch)
 
         for i in range(len(self.widget_keys)):
-            self.widget_keys[i] = GridItem(cons_be_x+(i%7)*64, cons_be_y+(i//7)*64, self.empty, self.empty, self.m_cadre_r, self.m_cadre_r_t, self, i, 3, self.batch)
-        
-        hand_be_x = center_x - 64*len(self.widget_equi) + 32
+            self.widget_keys[i] = GridItem(self.CONS_BE_X+(i%7)*64, self.CONS_BE_Y+(i//7)*64, self.empty, self.empty, self.m_cadre_r, self.m_cadre_r_t, self, i, 3, self.batch)
+
+        self.HAND_BE_X = center_x - 64*len(self.widget_equi) + 32
         for i in range(len(self.widget_hand)):
-            self.widget_hand[i] = GridItem(hand_be_x+i*128, 8, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 3, self.batch)
-        
-        self.hand_text0 = pyglet.text.Label("arme", font_name="Times New Roman", font_size=12, x=hand_be_x+32, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
-        self.hand_text1 = pyglet.text.Label("objet", font_name="Times New Roman", font_size=12, x=hand_be_x+128+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
-        self.hand_text2 = pyglet.text.Label("armure", font_name="Times New Roman", font_size=12, x=hand_be_x+256+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
-        self.hand_text3 = pyglet.text.Label("casque", font_name="Times New Roman", font_size=12, x=hand_be_x+384+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+            self.widget_hand[i] = GridItem(self.HAND_BE_X+i*128, 8, self.m_cadre, self.m_cadre_t, self.m_cadre_r, self.m_cadre_r_t, self, i, 3, self.batch)
+
+        self.hand_text0 = pyglet.text.Label("arme", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+32, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+        self.hand_text1 = pyglet.text.Label("objet", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+128+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+        self.hand_text2 = pyglet.text.Label("armure", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+256+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+        self.hand_text3 = pyglet.text.Label("casque", font_name="Times New Roman", font_size=12, x=self.HAND_BE_X+384+31, y=84, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
 
         self.arrow_button_r = ArrowButton(self._SIZE_X-68, center_y-32, self.arrow_right, self.arrow_right_t, self.batch)
         self.arrow_button_l = ArrowButton(4, center_y-32, self.arrow_left, self.arrow_left_t, self.batch)
+
+
+    def find_free(self, inv):
+        for i, item in enumerate(inv):
+            if item == None:
+                return i
+        return None
+
+
+    def pickup(self, item) -> bool: # Vrai si ramassé sans problème, Faux si pas ramassé
+        if 0 <= item.itype <= 3:
+            item_inv = None
+            match item.itype:
+                case 0:
+                    item_inv = self.arms
+                case 1:
+                    item_inv = self.equi
+                case 2:
+                    item_inv = self.cons
+                case 3:
+                    item_inv = self.keys
+            free = self.find_free(item_inv)
+            if free == None:
+                return False
+            item_inv[free] = item
+            item_inv[free].sprite.batch = self.batch
+            return True
+        if item.itype == 4:
+            self.bullets[item.btype] += item.ammount
+            item_inv[free].sprite.batch = self.batch
+            return True
+        return False
+
+
+    def throwaway(self, inv, index):
+        if inv[index] == None:
+            return None
+        item = inv[index]
+        inv[index] = None
+        return item
+
+
+    def finalswitch(self, inv1, index1, inv2, index2):
+        item1 = inv1[index1]
+        item2 = inv2[index2]
+        inv1[index1] = item2
+        inv2[index2] = item1
+
+
+    def switchup(self, inv1, index1, inv2, index2): # Fonction moche et j'en ai rien à foutre
+        if inv1 != inv2:
+            if inv1 == self.hand:
+                match inv2:
+                    case self.arms:
+                        if index1 == 0:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                    case self.cons:
+                        if index1 == 1:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                    case self.equi:
+                        if index1 == 2 or index1 == 3:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                return
+            if inv2 == self.hand:
+                match inv1:
+                    case self.arms:
+                        if index2 == 0:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                    case self.cons:
+                        if index2 == 1:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                    case self.equi:
+                        if index2 == 2 or index2 == 3:
+                            self.finalswitch(inv1, index1, inv2, index2)
+                        return
+                return
+            return
+        if inv1 == self.keys or inv1 == self.hand:
+            return
+        self.finalswitch(inv1, index1, inv2, index2)
+
+
+    def place_items(self):
+        e_arms, e_equi, e_cons, e_keys, e_bull = False, False, False, False, False
+        match self.page:
+            case 0:
+                e_arms = True
+            case 1:
+                e_equi = True
+            case 2:
+                e_cons = True
+            case 3:
+                e_keys = True
+            case 4:
+                e_bull = True
+
+        for i in range(len(self.arms)):
+            if self.arms[i] == None:
+                continue
+            self.arms[i].sprite.x = self.ARMS_BE_X+i*64
+            self.arms[i].sprite.y = self.ARMS_BE_Y
+            self.arms[i].sprite.visible = e_arms
+
+        for i in range(len(self.equi)):
+            if self.equi[i] == None:
+                continue
+            self.equi[i].sprite.x = self.EQUI_BE_X+i*64
+            self.equi[i].sprite.y = self.EQUI_BE_Y
+            self.equi[i].sprite.visible = e_equi
+
+        for i in range(len(self.cons)):
+            if self.cons[i] == None:
+                continue
+            self.cons[i].sprite.x = self.CONS_BE_X+(i%7)*64
+            self.cons[i].sprite.y = self.CONS_BE_Y+(i//7)*64
+            self.cons[i].sprite.visible = e_cons
+
+        for i in range(len(self.keys)):
+            if self.keys[i] == None:
+                continue
+            self.keys[i].sprite.x = self.CONS_BE_X+(i%7)*64
+            self.keys[i].sprite.y = self.CONS_BE_Y+(i//7)*64
+            self.keys[i].sprite.visible = e_keys
+
+        for i in range(len(self.hand)):
+            if self.hand[i] == None:
+                continue
+            self.hand[i].sprite.x = self.HAND_BE_X+i*128
+            self.hand[i].sprite.y = 8
+            self.hand[i].sprite.visible = e_keys
 
 
     def update(self, inputo, scale):
@@ -250,22 +393,44 @@ class Inventory:
             case 4:
                 e_bull = True
                 self.indicator_label.text = "munitions"
-        for widget in self.widget_arms:
+        for i, widget in enumerate(self.widget_arms):
+            if self.arms[i]:
+                widget.presence = True
+            else:
+                widget.presence = False
             widget.enable(e_arms)
             widget.update(inputo, scale)
-        for widget in self.widget_equi:
+        for i, widget in enumerate(self.widget_equi):
+            if self.equi[i]:
+                widget.presence = True
+            else:
+                widget.presence = False
             widget.enable(e_equi)
             widget.update(inputo, scale)
-        for widget in self.widget_cons:
+        for i, widget in enumerate(self.widget_cons):
+            if self.cons[i]:
+                widget.presence = True
+            else:
+                widget.presence = False
             widget.enable(e_cons)
             widget.update(inputo, scale)
-        for widget in self.widget_keys:
+        for i, widget in enumerate(self.widget_keys):
+            if self.keys[i]:
+                widget.presence = True
+            else:
+                widget.presence = False
             widget.enable(e_keys)
             widget.update(inputo, scale)
-        for widget in self.widget_hand:
+        for i, widget in enumerate(self.widget_hand):
+            if self.hand[i]:
+                widget.presence = True
+            else:
+                widget.presence = False
             widget.enable(True)
             widget.update(inputo, scale)
         if self.arrow_button_l.update(inputo, scale):
             self.switch_page(-1)
         if self.arrow_button_r.update(inputo, scale):
             self.switch_page(1)
+        
+        self.place_items()

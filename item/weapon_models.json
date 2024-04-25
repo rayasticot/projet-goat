@@ -1,7 +1,8 @@
 {
     "models": [
         {
-            "sprite": 0,
+			"itype": 0,
+            "image": 0,
             "name": "AK-47",
             "desc": "Arme simpa avec des bonne bale qui tire",
             "weight": 3300,

@@ -59,9 +59,24 @@ class Game(pyglet.window.Window):
         self._inputo.mx = x
         self._inputo.my = y
 
+    def on_mouse_press(self, x, y, button, modifiers):
+        if button == pyglet.window.mouse.LEFT:
+            self._inputo.lclick = 1
+        if button == pyglet.window.mouse.RIGHT:
+            self._inputo.rclick = 1
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        if button == pyglet.window.mouse.LEFT:
+            self._inputo.lclick = 0
+        if button == pyglet.window.mouse.RIGHT:
+            self._inputo.rclick = 0
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self._inputo.mx = x
+        self._inputo.my = y
 
 if __name__ == "__main__":
     pyglet.image.Texture.default_min_filter = GL_NEAREST
     pyglet.image.Texture.default_mag_filter = GL_NEAREST
     window = Game()
-    pyglet.app.run(1/200)
+    pyglet.app.run(1/60)

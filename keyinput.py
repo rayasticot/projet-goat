@@ -12,3 +12,5 @@ class Input:
         self.getin = 0
         self.openinv = 0
         self.hbrake = 0
+        self.lclick = 0
+        self.rclick = 0

@@ -27,11 +27,13 @@ class MainGameScene(Scene):
         self.cam_x = 0
         self.cam_y = 0
         self.player = Player(self.sprite_batch, 0, 0, self._SIZE_X, self._SIZE_Y, self._window_scale)
-        self.inventory = Inventory(window, self._SIZE_X, self._SIZE_Y)
+        self.inventory = Inventory(self._SIZE_X, self._SIZE_Y)
         self.overlay = pyglet.image.Texture.create(self._SIZE_X, self._SIZE_Y, internalformat=pyglet.gl.GL_RGBA8)
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
         pyglet.clock.schedule_interval(self.update, 1/60)
+
+        #self.inventory.pickup_item()
 
     def draw(self):
         #self.backsprite.draw()
@@ -55,6 +57,8 @@ class MainGameScene(Scene):
         if self._inputo.openinv:
             self._inputo.openinv = 0
             self.inventory.active = not self.inventory.active
+        if self.inventory.active:
+            self.inventory.update(self._inputo, self._window_scale)
 
     def __del__(self):
         pyglet.clock.unschedule(self.update)

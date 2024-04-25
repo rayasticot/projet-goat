@@ -171,7 +171,7 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.program["alpha"] = self.alpha
         self.program["cam_coords"] = [self.cam_x, self.cam_y]
         self.program["time"] = time.time()%10000
-        print(self.program["cam_coords"])
+        #print(self.program["cam_coords"])
         #self.program["mask"] = self.mask.id
         #self.program["map"] = self.map_texture.id
         self.program["tex0"] = self.textures[0+self.tile_offset].id

@@ -23,11 +23,13 @@ class PlayerCar:
         self.speed_y = 0.0
         self.speed_intensity = 0.0
         self.dir_x = 0.0
-        self.dir_y = 1.0
-        self.image = pyglet.image.load("img/car.png")
+        self.dir_y = -1.0
+        self.image = pyglet.image.load("img/van.png")
         self.image.anchor_x = self.image.width // 2
         self.image.anchor_y = self.image.height // 2
         self.sprite = WorldSprite(batch=batch, img=self.image, x=(((self._SIZE_X)//2)), y=(((self._SIZE_Y)//2)))
+        self.sprite.scale_x = 1/4
+        self.sprite.scale_y = 1/4
         #self.sprite.scale = self._window_scale
 
     def hbrake_func(self, x):
@@ -135,7 +137,7 @@ class PlayerCar:
     def update(self, inputo, delta_t):
         self.rotate(inputo, delta_t)
         self.accelerate(inputo, delta_t)
-        self.sprite.rotation = np.degrees(np.arctan2(self.dir_y, self.dir_x)*(-1) + (np.pi/2))
+        self.sprite.rotation = np.degrees(np.arctan2(self.dir_y, self.dir_x)*(-1) + (np.pi/2) + np.pi)
         self.x, self.y = int(self.pos_x), int(self.pos_y)
 
     def update_sprite(self, cam_x, cam_y):

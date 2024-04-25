@@ -1,12 +1,10 @@
 {
     "models": [
         {
-            "sprite": "img/items/ak.png",
+            "sprite": 0,
             "name": "AK-47",
             "desc": "Arme simpa avec des bonne bale qui tire",
             "weight": 3300,
-            "size_x": 4,
-            "size_y": 2,
             "capacity": 30,
             "bullet_type": 0,
             "rate": 10,
@@ -16,4 +14,3 @@
         }
     ]
 }
-  

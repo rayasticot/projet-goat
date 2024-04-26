@@ -174,7 +174,8 @@ class Inventory:
         self.widget_equi = [None]*4
         self.widget_cons = [None]*14
         self.widget_keys = [None]*14
-        self.widget_bullets = [None]*len(self.bullets)
+        self.sprite_bullets = [None]*len(self.bullets)
+        self.text_bullets = [None]*len(self.bullets)
         self.widget_hand = [None]*4
 
         self.indicator_label = pyglet.text.Label("", font_name="Times New Roman", font_size=24, x=size_x/2, y=size_y-24, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
@@ -213,7 +214,7 @@ class Inventory:
 
     def switch_page(self, ammount):
         self.page += ammount
-        self.page %= 4
+        self.page %= 5
 
     def create_widgets(self):
         center_x = self._SIZE_X/2
@@ -247,6 +248,14 @@ class Inventory:
 
         self.arrow_button_r = ArrowButton(self._SIZE_X-68, center_y-32, self.arrow_right, self.arrow_right_t, self.batch)
         self.arrow_button_l = ArrowButton(4, center_y-32, self.arrow_left, self.arrow_left_t, self.batch)
+
+        i = 0
+        for key, value in self.bullets.items():
+            self.text_bullets[i] = pyglet.text.Label(key+": "+str(value), font_name="Times New Roman", font_size=32, x=128, y=self._SIZE_Y-64-32*i, anchor_x="left", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+            self.sprite_bullets[i] = pyglet.sprite.Sprite(img=ITEM_IMAGES[BULLET_IMAGE[key]], x=80, y=self._SIZE_Y-83-32*i, batch=self.batch)
+            self.sprite_bullets[i].scale_x = 1/2
+            self.sprite_bullets[i].scale_y = 1/2
+            i += 1
 
 
     def find_free(self, inv):
@@ -494,6 +503,12 @@ class Inventory:
                 widget.presence = False
             widget.enable(True)
             widget.update(inputo, scale, press, release)
+        i = 0
+        for key, value in self.bullets.items():
+            self.sprite_bullets[i].visible = e_bull
+            self.text_bullets[i].visible = e_bull
+            self.text_bullets[i].text = key+": "+str(value)
+            i += 1
         if self.arrow_button_l.update(inputo, scale):
             self.switch_page(-1)
         if self.arrow_button_r.update(inputo, scale):

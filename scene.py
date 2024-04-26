@@ -2,7 +2,7 @@ import pyglet
 from pyglet.gl import *
 from abc import ABC, abstractmethod
 from world_gen import WorldGen
-from player import Player
+from player import Player, BulletManager
 from inventory import Inventory, Weapon, WEAPON_MODELS
 
 
@@ -26,14 +26,15 @@ class MainGameScene(Scene):
         self.sprite_batch = pyglet.graphics.Batch()
         self.cam_x = 0
         self.cam_y = 0
-        self.player = Player(self.sprite_batch, 0, 0, self._SIZE_X, self._SIZE_Y, self._window_scale)
         self.inventory = Inventory(self._SIZE_X, self._SIZE_Y)
+        self.player = Player(self.sprite_batch, 0, 0, self._SIZE_X, self._SIZE_Y, self._window_scale, self.inventory)
+        self.bullet_manager = BulletManager()
         self.overlay = pyglet.image.Texture.create(self._SIZE_X, self._SIZE_Y, internalformat=pyglet.gl.GL_RGBA8)
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
         pyglet.clock.schedule_interval(self.update, 1/60)
 
-        weapon = Weapon(WEAPON_MODELS[0], False, 0, 0, 0, 0)
+        weapon = Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0)
         print(self.inventory.pickup(weapon))
 
         #self.inventory.pickup_item()
@@ -53,7 +54,11 @@ class MainGameScene(Scene):
         self.overlay.blit(0, 0, width=self._SIZE_X*self._window_scale, height=self._SIZE_Y*self._window_scale)
 
     def update(self, dt):
-        self.player.update(self._inputo, dt)
+        bullet = self.player.update(self._inputo, dt)
+        if bullet != None:
+            print("a")
+            self.bullet_manager.add_bullet(bullet, True)
+        self.bullet_manager.update(dt, self.cam_x, self.cam_y)
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
         self.worldgen.group.update(self.cam_x, self.cam_y)

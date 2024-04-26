@@ -14,3 +14,4 @@ class Input:
         self.hbrake = 0
         self.lclick = 0
         self.rclick = 0
+        self.reload = 0

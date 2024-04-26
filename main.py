@@ -37,6 +37,8 @@ class Game(pyglet.window.Window):
                 self._inputo.getin = 1
             case key.TAB:
                 self._inputo.openinv = 1
+            case key.R:
+                self._inputo.reload = 1
 
     def on_key_release(self, symbol, modifiers):
         match(symbol):
@@ -54,6 +56,8 @@ class Game(pyglet.window.Window):
                 self._inputo.getin = 0
             case key.TAB:
                 self._inputo.openinv = 0
+            case key.R:
+                self._inputo.reload = 0
 
     def on_mouse_motion(self, x, y, dx, dy):
         self._inputo.mx = x

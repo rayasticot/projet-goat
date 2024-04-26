@@ -38,6 +38,7 @@ class WeaponModel:
         self.desc = modelinfo["desc"]
         self.weight = modelinfo["weight"]
         self.capacity = modelinfo["capacity"]
+        self.loadtime = modelinfo["loadtime"]
         self.bullet_type = modelinfo["bullet_type"]
         self.rate = modelinfo["rate"]
         self.reach = modelinfo["reach"]
@@ -48,6 +49,13 @@ class WeaponModel:
 class Weapon(Item):    
     def __init__(self, model, loaded, rate_dmg, reach_dmg, accuracy_dmg, damage_dmg):
         super().__init__(None, 0, model.image_index, model.name, model.desc, model.weight)
+        self.capacity = model.capacity
+        self.loadtime = model.loadtime
+        self.bullet_type = model.bullet_type
+        self.rate = model.rate
+        self.reach = model.reach
+        self.accuracy = model.accuracy
+        self.damage = model.damage
         self.loaded = loaded
         self.rate_dmg = rate_dmg
         self.reach_dmg = reach_dmg
@@ -165,8 +173,8 @@ class Inventory:
         self.cons = [None]*16
         self.keys = [None]*16
         self.bullets = {
-            "9mm": 0,
-            "7.62mm": 0
+            "9mm": 100,
+            "7.62mm": 100
         }
         self.hand = [None]*4
 
@@ -355,7 +363,16 @@ class Inventory:
         if inv1 == self.keys or inv1 == self.hand:
             return
         self.finalswitch(inv1, index1, inv2, index2)
-    
+
+
+    def take_bullets(self, btype, ammount):
+        if self.bullets[btype] >= ammount:
+            self.bullets[btype] -= ammount
+            return ammount
+        to_give = self.bullets[btype]
+        self.bullets[btype] = 0
+        return to_give
+
 
     def item_pressed(self, index, i_type):
         self.released_item_index = None

@@ -1,6 +1,7 @@
 import pyglet
-from worldsprite import WorldSprite
+import random as r
 import numpy as np
+from worldsprite import WorldSprite
 
 
 SENSI = np.pi/2
@@ -9,6 +10,112 @@ DECCEL_ADD = 1
 BRAKE_ADD = 4
 FRONT_SPEED_L = 12
 BACK_SPEED_L = 2
+
+
+class BulletManager:
+    def __init__(self):
+        self.bullet_list_player = []
+        self.bullet_list_ennemy = []
+
+    def add_bullet(self, bullet, btype):
+        if btype:
+            self.bullet_list_player.append(bullet)
+        else:
+            self.bullet_list_ennemy.append(bullet)
+
+    def update(self, delta_t, cam_x, cam_y):
+        bullet_player_to_remove = []
+        bullet_ennemy_to_remove = []
+        for i in range(len(self.bullet_list_player)):
+            if self.bullet_list_player[i].update(delta_t, cam_x, cam_y):
+                bullet_player_to_remove.append(i)
+        for i in range(len(self.bullet_list_ennemy)):
+            if self.bullet_list_ennemy[i].update(delta_t, cam_x, cam_y):
+                bullet_ennemy_to_remove.append(i)
+        new_bullet_list_player = []
+        new_bullet_list_ennemy = []
+        for i in range(len(self.bullet_list_player)):
+            if not i in bullet_player_to_remove:
+                new_bullet_list_player.append(self.bullet_list_player[i])
+        for i in range(len(self.bullet_list_ennemy)):
+            if not i in bullet_ennemy_to_remove:
+                new_bullet_list_ennemy.append(self.bullet_list_ennemy[i])
+        self.bullet_list_player = new_bullet_list_player
+        self.bullet_list_ennemy = new_bullet_list_ennemy
+
+
+class Bullet:
+    def __init__(self, pos_x, pos_y, dir_x, dir_y, reach, damage, accuracy, batch):
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.og_x = pos_x
+        self.og_y = pos_y
+        angle = np.arctan2(dir_y, dir_x)
+        self.dir_x = np.cos(angle+np.radians(r.uniform(accuracy, -accuracy)))
+        self.dir_y = np.sin(angle+np.radians(r.uniform(accuracy, -accuracy)))
+        dir_inten = np.sqrt(self.dir_x**2 + self.dir_y**2)
+        self.dir_x /= dir_inten
+        self.dir_y /= dir_inten
+        self.line = pyglet.shapes.Line(0, 0, 100, 100, 1, (255, 255, 255, 200), batch=batch)
+        self.destroy_time = reach/1860
+        self.alive_time = 0.0
+        self.damage = damage
+
+    def find_x1_y1(self, dt):
+        if self.alive_time < 0.25:
+            return self.og_x, self.og_y
+        return self.og_x + self.dir_x*(self.alive_time-0.25)*1860, self.og_y + self.dir_y*(self.alive_time-0.25)*1860
+
+    def update(self, dt, cam_x, cam_y):
+        self.alive_time += dt
+        self.pos_x += self.dir_x*dt*1860
+        self.pos_y += self.dir_y*dt*1860
+        self.line.x, self.line.y = self.find_x1_y1(dt)
+        self.line.x2, self.line.y2 = self.pos_x, self.pos_y
+        self.line.x = self.line.x - cam_x
+        self.line.y = self.line.y - cam_y
+        self.line.x2 = self.line.x2 - cam_x
+        self.line.y2 = self.line.y2 - cam_y
+        if self.alive_time >= self.destroy_time:
+            return True
+        return False
+
+
+class WeaponControl:
+    def __init__(self, pos_x, pos_y, inventory, batch):
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.inventory = inventory
+        self.weapon = self.inventory.hand[0]
+        self.last_shot = 0
+        self.time_since_load = 0
+        self.batch = batch
+
+    def update(self, pos_x, pos_y, dir_x, dir_y, inputo, dt):
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.dir_x = dir_x
+        self.dir_y = dir_y
+        self.last_shot += dt
+        self.time_since_load += dt
+        self.weapon = self.inventory.hand[0]
+        if self.weapon == None:
+            return None
+        print(self.weapon.loaded)
+        if inputo.reload:
+            inputo.reload = 0
+            if self.weapon.loaded < self.weapon.capacity and self.time_since_load > self.weapon.loadtime:
+                self.weapon.loaded = self.inventory.take_bullets(self.weapon.bullet_type, self.weapon.capacity)
+                if self.weapon.loaded > 0:
+                    self.time_since_load = 0
+        if inputo.lclick:
+            if self.weapon.loaded <= 0 or self.time_since_load < self.weapon.loadtime:
+                return None
+            if self.last_shot > 1/self.weapon.rate:
+                self.last_shot = 0
+                self.weapon.loaded -= 1
+                return Bullet(pos_x, pos_y, dir_x, dir_y, self.weapon.reach, self.weapon.damage, self.weapon.accuracy, self.batch)
+        return None
 
 
 class PlayerCar:
@@ -221,7 +328,7 @@ class PlayerWalker:
 
 
 class Player:
-    def __init__(self, batch, pos_x, pos_y, size_x, size_y, scale):
+    def __init__(self, batch, pos_x, pos_y, size_x, size_y, scale, inventory):
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self._window_scale = scale
@@ -230,6 +337,7 @@ class Player:
         self.selection = 1
         self.playercar = PlayerCar(batch, pos_x, pos_y, size_x, size_y, scale)
         self.playerwalker = PlayerWalker(batch, pos_x, pos_y, size_x, size_y, scale)
+        self.weaponcontrol = WeaponControl(pos_x, pos_y, inventory, batch)
 
     def update(self, inputo, delta_t):
         if self.selection:
@@ -267,3 +375,8 @@ class Player:
             self.cam_y = self.playercar.y - (self._SIZE_Y//2)
         self.playercar.update_sprite(self.cam_x, self.cam_y)
         self.playerwalker.update_sprite(self.cam_x, self.cam_y)
+
+        dir_x = inputo.mx - ((self._SIZE_X*self._window_scale)//2)
+        dir_y = inputo.my - ((self._SIZE_Y*self._window_scale)//2)
+
+        return self.weaponcontrol.update(self.playerwalker.pos_x, self.playerwalker.pos_y, dir_x, dir_y, inputo, delta_t)

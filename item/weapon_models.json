@@ -7,10 +7,11 @@
             "desc": "Arme simpa avec des bonne bale qui tire",
             "weight": 3300,
             "capacity": 30,
-            "bullet_type": 0,
+            "loadtime": 2,
+            "bullet_type": "7.62mm",
             "rate": 10,
-            "reach": 1000,
-            "accuracy": 2,
+            "reach": 5000,
+            "accuracy": 1,
             "damage": 29
         }
     ]

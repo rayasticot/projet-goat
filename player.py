@@ -62,9 +62,9 @@ class Bullet:
         self.damage = damage
 
     def find_x1_y1(self, dt):
-        if self.alive_time < 0.25:
+        if self.alive_time < 0.1:
             return self.og_x, self.og_y
-        return self.og_x + self.dir_x*(self.alive_time-0.25)*1860, self.og_y + self.dir_y*(self.alive_time-0.25)*1860
+        return self.og_x + self.dir_x*(self.alive_time-0.1)*1860, self.og_y + self.dir_y*(self.alive_time-0.1)*1860
 
     def update(self, dt, cam_x, cam_y):
         self.alive_time += dt

@@ -42,8 +42,14 @@ fragment_source = """#version 330 core
         #define SY 360
         #define FIX_NX 0.0015625 // 1/SX
         #define FIX_NY 0.002777777777777778 // 1/SY
-        #define TEX_AMM_X 10 // SX/64
-        #define TEX_AMM_Y 5.625 // SY/64
+        #define WAT_AMM_X 10
+        #define WAT_AMM_Y 5.625
+        #define TEX_AMM_X 2.5296442687747036 // SX/TAILLEIMAGE
+        #define TEX1_AMM_X 2.6122448979591835
+        #define TEX2_AMM_X 2.7705627705627704
+        #define TEX_AMM_Y 1.4229249011857708 // SY/TAILLEIMAGE
+        #define TEX1_AMM_Y 1.469387755102041
+        #define TEX2_AMM_Y 1.5584415584415585
         #define MAP_SIZE_X 389
         #define MAP_SIZE_Y 891
 
@@ -90,6 +96,8 @@ fragment_source = """#version 330 core
             //fragColor = vec4(maskPixel);
             //fragColor.a = 1.0;
             vec2 texPosition = vec2(position.x*TEX_AMM_X, position.y*TEX_AMM_Y);
+            vec2 tex1Position = vec2(position.x*TEX1_AMM_X, position.y*TEX1_AMM_Y);
+            vec2 tex2Position = vec2(position.x*TEX2_AMM_X, position.y*TEX2_AMM_Y);
             vec2 texCancPosition = vec2(position.x*9.552238805970148, position.y*5.373134328358209);
 
             //vec2 texCancPosition = vec2((position.x+(perlin(positionTimed, 5, 1)*0.05))*9.552238805970148, (position.y+(perlin(positionTimed, 5, 1)*0.05))*5.373134328358209);
@@ -98,11 +106,12 @@ fragment_source = """#version 330 core
             vec4 baseColor = vec4(0, 0, 0, 0);
             if(maskPixel < -0.6666666666666666){
                 vec2 positionTimed = vec2(position.x+(time*0.125), position.y+(time*0.125));
-                texPosition = vec2((position.x+(perlin(positionTimed, 5, 1))*0.05)*TEX_AMM_X, (position.y+(perlin(positionTimed, 5, 1)*0.05))*TEX_AMM_Y);
+                //texPosition = vec2((position.x+cos(positionTimed.x*8)*0.025)*TEX_AMM_X, (position.y+sin(positionTimed.x*8)*0.025)*TEX_AMM_Y);
+                texPosition = vec2((position.x+(perlin(positionTimed, 5, 1))*0.025)*WAT_AMM_X, (position.y+(perlin(positionTimed, 5, 1)*0.025))*WAT_AMM_Y);
                 baseColor = texture(tex0, texPosition);
             }
             else{
-                baseColor = texture(tex1, texPosition) * vec4(0.5, 0.5, 0.5, 0.5) + texture(tex2, texCancPosition) * vec4(0.5, 0.5, 0.5, 0.5);
+                baseColor = texture(tex1, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex2, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex3, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
                 //float noising = (perlin(position, 5, 1)+1)*0.5;
                 //baseColor = baseColor * vec4(noising, noising, noising, noising) + texture(tex3, texCanc1Position) * vec4(1-noising, 1-noising, 1-noising, 1-noising);
             }
@@ -146,6 +155,7 @@ class WorldGenGroup(pyglet.graphics.Group):
 
     def update(self, cam_x, cam_y):
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)
+        print(self.cam_x, self.cam_y)
         self.program["time"] = time.time()%10000
 
     def set_state(self):
@@ -177,7 +187,7 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.program["tex0"] = self.textures[0+self.tile_offset].id
         self.program["tex1"] = self.textures[1+self.tile_offset].id
         self.program["tex2"] = self.textures[2+self.tile_offset].id
-        #self.program["tex3"] = self.textures[3+self.tile_offset].id
+        self.program["tex3"] = self.textures[3+self.tile_offset].id
         """
         self.program["tex4"] = self.textures[4].id
         self.program["tex5"] = self.textures[5].id
@@ -192,9 +202,9 @@ class WorldGen:
     def __init__(self, scale, size_x, size_y):
         mape = pyglet.image.load("map/map.png")
         tiles = (pyglet.image.load("img/tiles/eau.png"),
-                 pyglet.image.load("img/tiles/tile_grass0.png"),
-                 pyglet.image.load("img/tiles/tile_grass0_canc.png"),
-                 pyglet.image.load("img/tiles/tile_grass0_canc1.png"))
+                 pyglet.image.load("img/tiles/tes0.png"),
+                 pyglet.image.load("img/tiles/tes1.png"),
+                 pyglet.image.load("img/tiles/tes2.png"))
         self._window_scale = scale
         self._SIZE_X = size_x
         self._SIZE_Y = size_y

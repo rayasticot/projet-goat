@@ -359,6 +359,9 @@ class Player:
                 self.playerwalker.update(inputo, delta_t)
             self.cam_x = self.playerwalker.x - (self._SIZE_X//2)
             self.cam_y = self.playerwalker.y - (self._SIZE_Y//2)
+            if inputo.rclick:
+                self.cam_x = self.playerwalker.x + (((inputo.mx//4)-(self._SIZE_X//2))*2) - 160
+                self.cam_y = self.playerwalker.y + (((inputo.my//4)-(self._SIZE_Y//2))*2) - 96
         else:
             self.playerwalker.pos_x = self.playercar.pos_x
             self.playerwalker.pos_y = self.playercar.pos_y
@@ -373,6 +376,9 @@ class Player:
                 self.playercar.update(inputo, delta_t)
             self.cam_x = self.playercar.x - (self._SIZE_X//2)
             self.cam_y = self.playercar.y - (self._SIZE_Y//2)
+            if inputo.rclick:
+                self.cam_x = self.playercar.x + (((inputo.mx//4)-(self._SIZE_X//2))*2) - 160
+                self.cam_y = self.playercar.y + (((inputo.my//4)-(self._SIZE_Y//2))*2) - 96
         self.playercar.update_sprite(self.cam_x, self.cam_y)
         self.playerwalker.update_sprite(self.cam_x, self.cam_y)
 

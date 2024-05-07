@@ -5,6 +5,7 @@ from world_gen import WorldGen
 from tileobject import TilingMap
 from player import Player, BulletManager
 from inventory import Inventory, Weapon, WEAPON_MODELS
+from hud import Hud
 
 
 class Scene(ABC):
@@ -28,6 +29,7 @@ class MainGameScene(Scene):
         self.cam_x = 0
         self.cam_y = 0
         self.inventory = Inventory(self._SIZE_X, self._SIZE_Y)
+        self.hud = Hud(self._SIZE_X, self._SIZE_Y, self._window_scale, self.sprite_batch)
         self.tilingmap = TilingMap(self.cam_x, self.cam_y, self._SIZE_X, self._SIZE_Y, self.sprite_batch)
         self.player = Player(self.sprite_batch, 0, 0, self._SIZE_X, self._SIZE_Y, self._window_scale, self.inventory)
         self.bullet_manager = BulletManager()
@@ -63,6 +65,7 @@ class MainGameScene(Scene):
         self.bullet_manager.update(dt, self.cam_x, self.cam_y)
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
+        self.hud.update(self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
         self.worldgen.group.update(self.cam_x, self.cam_y)
         self.tilingmap.update(self.cam_x, self.cam_y)
         if self._inputo.openinv:

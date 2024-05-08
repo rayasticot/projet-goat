@@ -6,6 +6,16 @@ from worldsprite import WorldSprite
 MAP_SIZE = 30
 
 
+class City:
+    def __init__(self, name, x, y, size_x, size_y):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.size_x = size_x
+        self.size_y = size_y
+
+cities = ()
+
 class TilingMap:
     def __init__(self, cam_x, cam_y, size_x, size_y, batch):
         self.cam_x = cam_x

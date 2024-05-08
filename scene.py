@@ -6,6 +6,7 @@ from tileobject import TilingMap
 from player import Player, BulletManager
 from inventory import Inventory, Weapon, WEAPON_MODELS
 from hud import Hud
+from npc import NpcManager
 
 
 class Scene(ABC):
@@ -36,6 +37,9 @@ class MainGameScene(Scene):
         self.overlay = pyglet.image.Texture.create(self._SIZE_X, self._SIZE_Y, internalformat=pyglet.gl.GL_RGBA8)
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
+
+        self.npc_manager = NpcManager(self.sprite_batch)
+
         pyglet.clock.schedule_interval(self.update, 1/60)
 
         weapon = Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0)
@@ -63,6 +67,11 @@ class MainGameScene(Scene):
             print("a")
             self.bullet_manager.add_bullet(bullet, True)
         self.bullet_manager.update(dt, self.cam_x, self.cam_y)
+        self.npc_manager.update(\
+            self.player.playerwalker.pos_x, self.player.playerwalker.pos_y,\
+            self.cam_x, self.cam_y, self.tilingmap.occupation_grid, self.bullet_manager.bullet_list_player,\
+            self.bullet_manager.bullet_list_ennemy, dt\
+        )
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
         self.hud.update(self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)

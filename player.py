@@ -2,6 +2,7 @@ import pyglet
 import random as r
 import numpy as np
 from worldsprite import WorldSprite
+import os
 
 
 SENSI = np.pi/2
@@ -338,6 +339,28 @@ class Player:
         self.playercar = PlayerCar(batch, pos_x, pos_y, size_x, size_y, scale)
         self.playerwalker = PlayerWalker(batch, pos_x, pos_y, size_x, size_y, scale)
         self.weaponcontrol = WeaponControl(pos_x, pos_y, inventory, batch)
+        self.music_folder = "snd/radio-wc"
+        self.mplayer = pyglet.media.Player()
+    
+    def radio(self):
+        # Get a list of music files in the folder
+        music_files = [f for f in os.listdir(self.music_folder) if f.endswith('.mp3') or f.endswith('.wav')]
+        if not music_files:
+            print("No music files found in the folder.")
+            return
+
+        # Load music into the player
+        playlist = [os.path.join(self.music_folder, f) for f in music_files]
+
+        # Shuffle the playlist
+        r.shuffle(playlist)
+
+        # Add the music to the player's queue
+        for music_file in playlist:
+            self.mplayer.queue(pyglet.media.load(music_file))
+
+        # Start playing
+        self.mplayer.play()
 
     def update(self, inputo, delta_t):
         if self.selection:
@@ -350,6 +373,7 @@ class Player:
                     inputo.getin = 0
                     self.playercar.stop()
                     self.playerwalker.sprite.visible = False
+                    self.radio()
                 if car_dir_inten < 256:
                     car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*8*delta_t, (car_dir_y/car_dir_inten)*8*delta_t
                     self.playerwalker.update(inputo, delta_t, car_dir_x, car_dir_y)
@@ -372,6 +396,8 @@ class Player:
                 inputo.getin = 0
                 self.playerwalker.stop()
                 self.playerwalker.sprite.visible = True
+                self.mplayer.pause()
+                self.mplayer.next_source()
             else:
                 self.playercar.update(inputo, delta_t)
             self.cam_x = self.playercar.x - (self._SIZE_X//2)

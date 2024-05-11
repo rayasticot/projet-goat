@@ -1,7 +1,8 @@
 import pyglet
-import numpy
+import numpy as np
 from worldsprite import WorldSprite
 from player import Bullet
+import astar
 
 
 NPC_IMAGES = (pyglet.image.load("img/mec.png"),)
@@ -16,12 +17,12 @@ class NpcWalker:
         self.sprite = WorldSprite(batch=batch, img=NPC_IMAGES[0], x=0, y=0)
         self.objective = self.get_objective() # INTEGRER COORDONNÉES D'UNE VILLE SUR LA MAP
         self.stress = 0
-        self.speed_objective = 1.5
+        self.speed_objective = 90
         self.health = health
         self.incar = incar
 
     def get_objective(self):
-        return (0, 0)
+        return (20000, -6000)
 
     def check_bullet_hit(self, bullet):
         if self.x < bullet.pos_x < self.x+32:
@@ -29,8 +30,53 @@ class NpcWalker:
                 self.health -= bullet.damage
                 self.stress += 1
 
-    def get_dir_to_point(self, x2, y2, obstacle_map):
-        return (0.7071067811865476, 0.7071067811865476)
+    def grid_cos_to_pixel(self, grid_x, grid_y, cam_x, cam_y):
+        return (256*grid_x) + cam_x - (14*256), (256*grid_y) + cam_y - (15*256)
+
+    def pixel_to_grid_cos(self, x, y, cam_x, cam_y):
+        return int((x//256) - (cam_x//256)) + 14, int((y//256) - (cam_y//256)) + 15
+
+    def find_grid_side_from_dir(self, x, y, cam_x, cam_y, dir_x, dir_y):
+        pos_x, pos_y = x+dir_x, y+dir_y
+        while 1:
+            pos_x += dir_x
+            pos_y += dir_y
+            grid_x, grid_y = self.pixel_to_grid_cos(pos_x, pos_y, cam_x, cam_y)
+            if 0 <= grid_x < 30 and 0 <= grid_y < 30:
+                continue
+            else:
+                return self.pixel_to_grid_cos(pos_x-dir_x, pos_y-dir_y, cam_x, cam_y)
+        return None
+
+    def get_mov_from_dir(self, dir_x, dir_y, delta_t):
+        mov_x, mov_y = dir_x, dir_y
+        match(self.npctype):
+            case 0:
+                self.speed_objective = 90
+                if self.stress > 1:
+                    self.speed_objective = 180
+                mov_x *= self.speed_objective*delta_t
+                mov_y *= self.speed_objective*delta_t
+        return mov_x, mov_y
+
+    def get_mov_to_point(self, x2, y2, obstacle_map, cam_x, cam_y, delta_t):
+        dir_x, dir_y = x2-self.x, y2-self.y
+        dir_inten = np.sqrt(dir_x**2+dir_y**2)
+        dir_x, dir_y = dir_x/dir_inten, dir_y/dir_inten
+        mov_x, mov_y = self.get_mov_from_dir(dir_x, dir_y, delta_t)
+        grid_x, grid_y = self.pixel_to_grid_cos(self.x+mov_x, self.y+mov_y, cam_x, cam_y)
+        #print(grid_x, grid_y)
+        if not obstacle_map[grid_x][grid_y]:
+            return mov_x, mov_y
+        grid_x2, grid_y2 = self.find_grid_side_from_dir(self.x, self.y, cam_x, cam_y, dir_x, dir_y)
+        cell0, cell1 = astar.get_last_two_cells(astar.find_path(obstacle_map, grid_x, grid_y, grid_x2, grid_y2))
+        dest_x1, dest_y1 = self.pixel_to_grid_cos(cell0.x, cell0.y, cam_x, cam_y)
+        dest_x2, dest_y2 = self.pixel_to_grid_cos(cell1.x, cell1.y, cam_x, cam_y)
+        dir_x, dir_y = dest_x2-dest_x1, dest_y2
+        dir_inten = np.sqrt(dir_x**2+dir_y**2)
+        dir_x, dir_y = dir_x/dir_inten, dir_y/dir_inten
+        mov_x, mov_y = self.get_mov_from_dir(dir_x, dir_y, delta_t)
+        return mov_x, mov_y
 
     def update_sprite(self, cam_x, cam_y):
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
@@ -38,12 +84,9 @@ class NpcWalker:
     def update(self, player_x, player_y, cam_x, cam_y, obstacle_map, delta_t):
         match(self.npctype):
             case 0:
-                self.dir_x, self.dir_y = self.get_dir_to_point(self.objective[0], self.objective[1], obstacle_map)
-                self.speed_objective = 1.5
-                if self.stress > 1:
-                    self.speed_objective = 3
-                self.x += self.dir_x*self.speed_objective
-                self.y += self.dir_y*self.speed_objective
+                self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
+                self.x += self.mov_x
+                self.y += self.mov_y
         self.update_sprite(cam_x, cam_y)
 
 

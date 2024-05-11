@@ -40,7 +40,7 @@ class TilingMap:
                     else:
                         new_sprite_dict[selected_key] = WorldSprite(batch=self.batch, img=self.rocher, x=self._SIZE_X, y=self._SIZE_Y)
         return pic, new_sprite_dict
-    
+
     def update_sprites(self):
         for key, value in self.sprite_dict.items():
             value.set_relative_pos(key[0]*256, key[1]*256, self.cam_x, self.cam_y)

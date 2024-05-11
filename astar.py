@@ -20,6 +20,19 @@ class Cell:
         return str(self.x)+", "+str(self.y)+"\n"+str(self.parent)
 
 
+def get_last_two_cells(cell):
+    try:
+        cell0 = cell
+        while 1:
+            cell1 = cell0.parent
+            cell2 = cell1.parent
+            if cell2 == None:
+                return cell0, cell1
+            cell0 = cell0.parent
+    except TypeError:
+        return None
+
+
 def find_smallest(liste):
     smallest = 0
     for i, cell in enumerate(liste):
@@ -50,10 +63,34 @@ def find_path(grid, x1, y1, x2, y2):
             Cell(q.x-1, q.y+1, q.g+1.4142135623730951, x2, y2, q), Cell(q.x-1, q.y-1, q.g+1.4142135623730951, x2, y2, q)
         )
         for cell in nexts:
+            print(cell)
             if cell.x == x2 and cell.y == y2:
                 return cell
             if inside(grid, cell.x, cell.y) and not grid[cell.x][cell.y] and not closedl[cell.x][cell.y]:
                 if opena[cell.x][cell.y] == float('inf') or opena[cell.x][cell.y] > cell.f:
+                    print("b")
                     opena[cell.x][cell.y] = cell.f
                     openl.append(cell)
+            print("a")
     return False
+
+
+if __name__ == "__main__":
+    # TEST
+    grid = np.zeros((5, 4))
+    grid[0][2] = 1
+    grid[1][2] = 1
+    grid[2][2] = 1
+    grid[2][1] = 1
+    grid[4][3] = 1
+    """
+    grid = np.array((
+            (0, 0, 0, 0, 0),
+            (0, 0, 1, 0, 0),
+            (1, 1, 1, 0, 0),
+            (0, 0, 0, 0, 1)
+        )
+    )
+    """
+    #print(grid[2][0])
+    print(find_path(grid, 0, 0, 0, 3))

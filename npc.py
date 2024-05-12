@@ -2,6 +2,7 @@ import pyglet
 import numpy as np
 from worldsprite import WorldSprite
 from player import Bullet
+from inventory import Weapon, WEAPON_MODELS
 import astar
 
 
@@ -10,7 +11,7 @@ NPC_CARS = (pyglet.image.load("img/van.png"),)
 
 
 class NpcWalker:
-    def __init__(self, x, y, health, npctype, incar, batch):
+    def __init__(self, x, y, health, npctype, weapon, incar, batch):
         self.x = x
         self.y = y
         self.npctype = npctype
@@ -19,7 +20,11 @@ class NpcWalker:
         self.stress = 0
         self.speed_objective = 90
         self.health = health
+        self.weapon = weapon
         self.incar = incar
+        self.last_shot = 0
+        self.time_since_load = 0
+        self.batch = batch
 
     def get_objective(self):
         return (20000, -6000)
@@ -57,6 +62,12 @@ class NpcWalker:
                     self.speed_objective = 180
                 mov_x *= self.speed_objective*delta_t
                 mov_y *= self.speed_objective*delta_t
+            case 2:
+                self.speed_objective = 90
+                if self.stress > 1:
+                    self.speed_objective = 180
+                mov_x *= self.speed_objective*delta_t
+                mov_y *= self.speed_objective*delta_t
         return mov_x, mov_y
 
     def get_mov_to_point(self, x2, y2, obstacle_map, cam_x, cam_y, delta_t):
@@ -80,6 +91,33 @@ class NpcWalker:
 
     def update_sprite(self, cam_x, cam_y):
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
+    
+    def get_distance_to_player(self, player_x, player_y):
+        dist_x = self.x-player_x
+        dist_y = self.y-player_y
+        return np.sqrt(dist_x**2 + dist_y**2)
+
+    def weapon_update(self, player_x, player_y, delta_t):
+        self.last_shot += delta_t
+        self.time_since_load += delta_t
+        if self.weapon == None:
+            return None
+        if self.weapon.loaded <= 0:
+            if self.time_since_load > self.weapon.loadtime:
+                self.weapon.loaded = self.weapon.capacity
+                if self.weapon.loaded > 0:
+                    self.time_since_load = 0
+            return None
+        if self.time_since_load < self.weapon.loadtime:
+            return None
+        if self.last_shot > 1/self.weapon.rate:
+            self.last_shot = 0
+            self.weapon.loaded -= 1
+            dir_x, dir_y = player_x-self.x, player_y-self.y
+            dir_inten = np.sqrt(dir_x**2+dir_y**2)
+            dir_x, dir_y = dir_x/dir_inten, dir_y/dir_inten
+            return Bullet(self.x, self.y, dir_x, dir_y, self.weapon.reach, self.weapon.damage, self.weapon.accuracy, self.batch)
+        return None
 
     def update(self, player_x, player_y, cam_x, cam_y, obstacle_map, delta_t):
         match(self.npctype):
@@ -87,7 +125,19 @@ class NpcWalker:
                 self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
                 self.x += self.mov_x
                 self.y += self.mov_y
+            case 2:
+                if self.health < 25:
+                    self.objective = self.get_objective()
+                else:
+                    if self.get_distance_to_player(player_x, player_y) > 200:
+                        self.objective = (player_x, player_y)
+                    else:
+                        self.objective = self.get_objective()
+                self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
+                self.x += self.mov_x
+                self.y += self.mov_y
         self.update_sprite(cam_x, cam_y)
+        return self.weapon_update(player_x, player_y, delta_t)
 
 
 class NpcCar:
@@ -108,16 +158,25 @@ class NpcCar:
                     pass
         self.update_sprite(cam_x, cam_y)
 
+
 class NpcManager:
     def __init__(self, batch):
         self.batch = batch
-        self.npcs = [NpcWalker(0, 0, 100, 0, False, self.batch)]
+        self.npcs = [NpcWalker(0, 0, 100, 2, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
         self.npcs_cars = []
     
-    def update(self, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
+    def update(self, bullet_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
+        new_npcs = []
         for npc in self.npcs:
+            grid_x, grid_y = npc.pixel_to_grid_cos(npc.x, npc.y, cam_x, cam_y)
+            if not 1 <= grid_x < 29 or not 1 <= grid_y < 29:
+                continue
+            new_npcs.append(npc)
             for bullet in bullet_list_player:
                 npc.check_bullet_hit(bullet)
             for bullet in bullet_list_ennemy:
                 npc.check_bullet_hit(bullet)
-            npc.update(player_x, player_y, cam_x, cam_y, obstacle_map, delta_t)
+            bullet = npc.update(player_x, player_y, cam_x, cam_y, obstacle_map, delta_t)
+            if bullet != None:
+                bullet_manager.add_bullet(bullet, False)
+        self.npcs = new_npcs

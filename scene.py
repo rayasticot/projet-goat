@@ -64,14 +64,13 @@ class MainGameScene(Scene):
     def update(self, dt):
         bullet = self.player.update(self._inputo, dt)
         if bullet != None:
-            print("a")
             self.bullet_manager.add_bullet(bullet, True)
-        self.bullet_manager.update(dt, self.cam_x, self.cam_y)
         self.npc_manager.update(\
-            self.player.playerwalker.pos_x, self.player.playerwalker.pos_y,\
+            self.bullet_manager, self.player.playerwalker.pos_x, self.player.playerwalker.pos_y,\
             self.cam_x, self.cam_y, self.tilingmap.occupation_grid, self.bullet_manager.bullet_list_player,\
             self.bullet_manager.bullet_list_ennemy, dt\
         )
+        self.bullet_manager.update(dt, self.cam_x, self.cam_y)
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
         self.hud.update(self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)

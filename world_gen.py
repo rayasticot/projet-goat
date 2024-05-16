@@ -83,7 +83,7 @@ fragment_source = """#version 330 core
         float waterMask(float maskPixel, vec2 position){
             vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*128), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*128)));
             if(texture(map, map_position).r < 0.5){
-                return -1;
+                return -1.0;
             }
             return maskPixel;
         }
@@ -202,9 +202,9 @@ class WorldGen:
     def __init__(self, scale, size_x, size_y):
         mape = pyglet.image.load("map/map.png")
         tiles = (pyglet.image.load("img/tiles/eau.png"),
-                 pyglet.image.load("img/tiles/tes0.png"),
-                 pyglet.image.load("img/tiles/tes1.png"),
-                 pyglet.image.load("img/tiles/tes2.png"))
+                 pyglet.image.load("img/tiles/pla0.png"),
+                 pyglet.image.load("img/tiles/sec1.png"),
+                 pyglet.image.load("img/tiles/pla2.png"))
         self._window_scale = scale
         self._SIZE_X = size_x
         self._SIZE_Y = size_y

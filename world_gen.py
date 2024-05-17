@@ -91,7 +91,7 @@ fragment_source = """#version 330 core
         }
 
         int get_map_biome(vec2 position){
-            vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*8), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*8)));
+            vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*256), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*256)));
             return int(round(texture(map, map_position).r*6));
         }
 
@@ -158,7 +158,7 @@ class WorldGenGroup(pyglet.graphics.Group):
         return x/self._SIZE_X, y/self._SIZE_Y
 
     def pixel_pos_to_world(self, x, y):
-        return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/8), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/8))
+        return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/256), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/256))
 
     def update(self, cam_x, cam_y):
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)

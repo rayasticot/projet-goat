@@ -1,5 +1,6 @@
 import pyglet
 from pyglet.gl import *
+import numpy as np
 import time
 
 
@@ -24,10 +25,19 @@ vertex_source = """#version 330 core
 fragment_source = """#version 330 core
         in vec3 texture_coords;
         uniform vec2 cam_coords;
-        uniform sampler2D tex0;
-        uniform sampler2D tex1;
-        uniform sampler2D tex2;
-        uniform sampler2D tex3;
+        uniform sampler2D tex_water;
+        uniform sampler2D tex_tes0;
+        uniform sampler2D tex_tes1;
+        uniform sampler2D tex_tes2;
+        uniform sampler2D tex_for0;
+        uniform sampler2D tex_for1;
+        uniform sampler2D tex_des0;
+        uniform sampler2D tex_des1;
+        uniform sampler2D tex_des2;
+        uniform sampler2D tex_sec0;
+        uniform sampler2D tex_sec2;
+        uniform sampler2D tex_pla0;
+        uniform sampler2D tex_pla2;
         /*
         uniform sampler2D tex4;
         uniform sampler2D tex5;
@@ -50,8 +60,8 @@ fragment_source = """#version 330 core
         #define TEX_AMM_Y 1.4229249011857708 // SY/TAILLEIMAGE
         #define TEX1_AMM_Y 1.469387755102041
         #define TEX2_AMM_Y 1.5584415584415585
-        #define MAP_SIZE_X 389
-        #define MAP_SIZE_Y 891
+        #define MAP_SIZE_X 1248
+        #define MAP_SIZE_Y 2352
 
         #define M_PI 3.14159265358979323846
 
@@ -80,18 +90,14 @@ fragment_source = """#version 330 core
             return center * 2.0 - 1.0;
         }
 
-        float waterMask(float maskPixel, vec2 position){
-            vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*128), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*128)));
-            if(texture(map, map_position).r < 0.5){
-                return -1.0;
-            }
-            return maskPixel;
+        int get_map_biome(vec2 position){
+            vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*8), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*8)));
+            return int(round(texture(map, map_position).r*6));
         }
 
         void main(){
             vec2 position = cam_coords.xy+texture_coords.xy;
-            float maskPixel = perlin(position, 0.015625, 1)+0.3333333333333334;
-            maskPixel = waterMask(maskPixel, position);
+            int maskPixel = get_map_biome(position);
             float darkenPixel1 = perlin(position, 5, 1)*0.0625;
             //fragColor = vec4(maskPixel);
             //fragColor.a = 1.0;
@@ -104,34 +110,32 @@ fragment_source = """#version 330 core
             //vec2 texCanc1Position = vec2((position.x+(perlin(positionTimed, 5, 1)*0.05))*14.883720930232558, (position.y+(perlin(positionTimed, 5, 1)*0.05))*8.372093023255815);
 
             vec4 baseColor = vec4(0, 0, 0, 0);
-            if(maskPixel < -0.6666666666666666){
-                vec2 positionTimed = vec2(position.x+(time*0.125), position.y+(time*0.125));
-                //texPosition = vec2((position.x+cos(positionTimed.x*8)*0.025)*TEX_AMM_X, (position.y+sin(positionTimed.x*8)*0.025)*TEX_AMM_Y);
-                texPosition = vec2((position.x+(perlin(positionTimed, 5, 1))*0.025)*WAT_AMM_X, (position.y+(perlin(positionTimed, 5, 1)*0.025))*WAT_AMM_Y);
-                baseColor = texture(tex0, texPosition);
+            switch(maskPixel){
+                case 0:
+                    vec2 positionTimed = vec2(position.x+(time*0.125), position.y+(time*0.125));
+                    //texPosition = vec2((position.x+cos(positionTimed.x*8)*0.025)*TEX_AMM_X, (position.y+sin(positionTimed.x*8)*0.025)*TEX_AMM_Y);
+                    texPosition = vec2((position.x+(perlin(positionTimed, 5, 1))*0.025)*WAT_AMM_X, (position.y+(perlin(positionTimed, 5, 1)*0.025))*WAT_AMM_Y);
+                    baseColor = texture(tex_water, texPosition);
+                    break;
+                case 1:
+                    baseColor = texture(tex_sec0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_des1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_sec2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
+                case 2:
+                    baseColor = texture(tex_des0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_des1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_des2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
+                case 3:
+                    baseColor = texture(tex_des0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_tes1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_tes2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
+                case 4:
+                    baseColor = texture(tex_tes0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_tes1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_tes2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
+                case 5:
+                    baseColor = texture(tex_for0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_for1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_tes2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
+                case 6:
+                    baseColor = texture(tex_pla0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_des1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_pla2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
+                    break;
             }
-            else{
-                baseColor = texture(tex1, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex2, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex3, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
-                //float noising = (perlin(position, 5, 1)+1)*0.5;
-                //baseColor = baseColor * vec4(noising, noising, noising, noising) + texture(tex3, texCanc1Position) * vec4(1-noising, 1-noising, 1-noising, 1-noising);
-            }
-            /*
-            else if(maskPixel < -0.3333333333333333){
-                baseColor = texture(tex1, texPosition);
-            }
-            else if(maskPixel < 0){
-                baseColor = texture(tex2, texPosition);
-            }
-            else if(maskPixel < 0.3333333333333333){
-                baseColor = texture(tex3, texPosition);
-            }
-            else if(maskPixel < 0.6666666666666666){
-                baseColor = texture(tex4, texPosition);
-            }
-            else{
-                baseColor = texture(tex5, texPosition);
-            }
-            */
             fragColor = vec4(baseColor.r+darkenPixel1*baseColor.r, baseColor.g+darkenPixel1*baseColor.r, baseColor.b+darkenPixel1*baseColor.r, alpha);
         }
 """
@@ -153,17 +157,21 @@ class WorldGenGroup(pyglet.graphics.Group):
     def pixel_to_screen(self, x, y):
         return x/self._SIZE_X, y/self._SIZE_Y
 
+    def pixel_pos_to_world(self, x, y):
+        return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/8), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/8))
+
     def update(self, cam_x, cam_y):
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)
         print(self.cam_x, self.cam_y)
+        print(self.pixel_pos_to_world(cam_x, cam_y))
         self.program["time"] = time.time()%10000
 
     def set_state(self):
         self.program.use()
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(self.map_texture.target, self.map_texture.id)
-        glTexParameteri(self.map_texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(self.map_texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        #glTexParameteri(self.map_texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        #glTexParameteri(self.map_texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(self.textures[0+self.tile_offset].target, self.textures[0+self.tile_offset].id)
         glActiveTexture(GL_TEXTURE2)
@@ -172,6 +180,24 @@ class WorldGenGroup(pyglet.graphics.Group):
         glBindTexture(self.textures[2+self.tile_offset].target, self.textures[2+self.tile_offset].id)
         glActiveTexture(GL_TEXTURE4)
         glBindTexture(self.textures[3].target, self.textures[3].id)
+        glActiveTexture(GL_TEXTURE5)
+        glBindTexture(self.textures[4+self.tile_offset].target, self.textures[4+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE6)
+        glBindTexture(self.textures[5+self.tile_offset].target, self.textures[5+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE7)
+        glBindTexture(self.textures[6+self.tile_offset].target, self.textures[6+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE8)
+        glBindTexture(self.textures[7+self.tile_offset].target, self.textures[7+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE9)
+        glBindTexture(self.textures[8+self.tile_offset].target, self.textures[8+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE10)
+        glBindTexture(self.textures[9+self.tile_offset].target, self.textures[9+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE11)
+        glBindTexture(self.textures[10+self.tile_offset].target, self.textures[10+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE12)
+        glBindTexture(self.textures[11+self.tile_offset].target, self.textures[11+self.tile_offset].id)
+        glActiveTexture(GL_TEXTURE13)
+        glBindTexture(self.textures[12+self.tile_offset].target, self.textures[12+self.tile_offset].id)
         """
         glActiveTexture(GL_TEXTURE5)
         glBindTexture(self.textures[4].target, self.textures[4].id)
@@ -184,10 +210,19 @@ class WorldGenGroup(pyglet.graphics.Group):
         #print(self.program["cam_coords"])
         #self.program["mask"] = self.mask.id
         #self.program["map"] = self.map_texture.id
-        self.program["tex0"] = self.textures[0+self.tile_offset].id
-        self.program["tex1"] = self.textures[1+self.tile_offset].id
-        self.program["tex2"] = self.textures[2+self.tile_offset].id
-        self.program["tex3"] = self.textures[3+self.tile_offset].id
+        self.program["tex_water"] = self.textures[0+self.tile_offset].id
+        self.program["tex_tes0"] = self.textures[1+self.tile_offset].id
+        self.program["tex_tes1"] = self.textures[2+self.tile_offset].id
+        self.program["tex_tes2"] = self.textures[3+self.tile_offset].id
+        self.program["tex_for0"] = self.textures[4+self.tile_offset].id
+        self.program["tex_for1"] = self.textures[5+self.tile_offset].id
+        self.program["tex_des0"] = self.textures[6+self.tile_offset].id
+        self.program["tex_des1"] = self.textures[7+self.tile_offset].id
+        self.program["tex_des2"] = self.textures[8+self.tile_offset].id
+        self.program["tex_sec0"] = self.textures[9+self.tile_offset].id
+        self.program["tex_sec2"] = self.textures[10+self.tile_offset].id
+        self.program["tex_pla0"] = self.textures[11+self.tile_offset].id
+        self.program["tex_pla2"] = self.textures[12+self.tile_offset].id
         """
         self.program["tex4"] = self.textures[4].id
         self.program["tex5"] = self.textures[5].id
@@ -200,10 +235,19 @@ class WorldGenGroup(pyglet.graphics.Group):
 
 class WorldGen:
     def __init__(self, scale, size_x, size_y):
-        mape = pyglet.image.load("map/map.png")
+        mape = pyglet.image.load("map/biome_map.png")
         tiles = (pyglet.image.load("img/tiles/eau.png"),
+                 pyglet.image.load("img/tiles/tes0.png"),
+                 pyglet.image.load("img/tiles/tes1.png"),
+                 pyglet.image.load("img/tiles/tes2.png"),
+                 pyglet.image.load("img/tiles/for0.png"),
+                 pyglet.image.load("img/tiles/for1.png"),
+                 pyglet.image.load("img/tiles/des0.png"),
+                 pyglet.image.load("img/tiles/des1.png"),
+                 pyglet.image.load("img/tiles/des2.png"),
+                 pyglet.image.load("img/tiles/sec0.png"),
+                 pyglet.image.load("img/tiles/sec2.png"),
                  pyglet.image.load("img/tiles/pla0.png"),
-                 pyglet.image.load("img/tiles/sec1.png"),
                  pyglet.image.load("img/tiles/pla2.png"))
         self._window_scale = scale
         self._SIZE_X = size_x

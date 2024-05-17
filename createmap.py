@@ -1,6 +1,6 @@
 from PIL import Image
 
-index = ((255, 255, 0, 255), (128, 128, 0, 255), (200, 255, 0, 255), (150, 255, 150, 255), (0, 255, 0, 255), (200, 200, 200, 255), (255, 255, 255, 255))
+index = ((42, 42, 42, 255), (84, 84, 84, 255), (126, 126, 126, 255), (168, 168, 168, 255), (210, 210, 210, 255))
 
 table = (
     # TEMP
@@ -18,18 +18,18 @@ table = (
 
 
 if __name__ == "__main__":
-    temp = Image.open("map/tempmap.png")
-    preci = Image.open("map/precimap.png")
+    temp = Image.open("map/tempmap1.png")
+    preci = Image.open("map/precimap1.png")
     final = Image.new(mode="RGBA", size=preci.size, color=(0, 0, 0, 0))
 
     for x in range(temp.size[0]):
         for y in range(temp.size[1]):
             if temp.getpixel((x, y))[1] == 0:
-                final.putpixel((x, y), (0, 0, 255, 255))
+                final.putpixel((x, y), (0, 0, 0, 255))
                 continue
             if 0 < x < temp.size[0]-1 and 0 < y < temp.size[1]-1:
                 if not temp.getpixel((x-1, y))[1] or not temp.getpixel((x-1, y-1))[1] or not temp.getpixel((x, y-1))[1] or not temp.getpixel((x+1, y-1))[1] or not temp.getpixel((x+1, y))[1] or not temp.getpixel((x+1, y+1))[1] or not temp.getpixel((x, y+1))[1] or not temp.getpixel((x-1, y+1))[1]:
-                    final.putpixel((x, y), (255, 0, 255, 255))
+                    final.putpixel((x, y), (255, 255, 255, 255))
                     continue
             pixel_to_put = (0, 0, 0, 0)
             temp_value = int((temp.getpixel((x, y))[0]/255)*10)

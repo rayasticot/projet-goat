@@ -1,0 +1,10 @@
+{
+    "Z": "UP",
+    "S": "DOWN",
+    "D": "RIGHT",
+    "Q": "LEFT",
+    "SPACE": "BRAKE",
+    "F": "INTERACT",
+    "TAB": "OPENINV",
+    "R": "RELOAD"
+}

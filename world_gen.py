@@ -45,6 +45,9 @@ fragment_source = """#version 330 core
         uniform sampler2D map;
         uniform float alpha;
         uniform float time;
+        uniform vec2 car_screen_pos;
+        uniform float car_angle;
+        uniform float time_of_day;
         out vec4 fragColor;
 
 
@@ -63,11 +66,18 @@ fragment_source = """#version 330 core
         #define MAP_SIZE_X 1248
         #define MAP_SIZE_Y 2352
 
+        #define HEADLIGHTRANGE 0.8862269254527579
+
         #define M_PI 3.14159265358979323846
+        #define EPSILON 1e-10
 
         float rand(vec2 co){return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);}
         float rand (vec2 co, float l) {return rand(vec2(rand(co), l));}
         float rand (vec2 co, float l, float t) {return rand(vec2(rand(co, l), t));}
+        float saturate(float v) { return clamp(v, 0.0,       1.0);       }
+        vec2  saturate(vec2  v) { return clamp(v, vec2(0.0), vec2(1.0)); }
+        vec3  saturate(vec3  v) { return clamp(v, vec3(0.0), vec3(1.0)); }
+        vec4  saturate(vec4  v) { return clamp(v, vec4(0.0), vec4(1.0)); }
 
         float perlin(vec2 p, float dim, float time) {
             vec2 pos = floor(p * dim);
@@ -93,6 +103,103 @@ fragment_source = """#version 330 core
         int get_map_biome(vec2 position){
             vec2 map_position = vec2((position.x*SX+(sin(position.y*SY*0.0625))*8)/(MAP_SIZE_X*256), ((position.y*SY+(cos(position.x*SX*0.0625))*8)/(MAP_SIZE_Y*256)));
             return int(round(texture(map, map_position).r*6));
+        }
+
+        vec3 ColorTemperatureToRGB(float temperatureInKelvins)
+        {
+            vec3 retColor;
+
+            temperatureInKelvins = clamp(temperatureInKelvins, 1000.0, 40000.0) / 100.0;
+
+            if (temperatureInKelvins <= 66.0)
+            {
+                retColor.r = 1.0;
+                retColor.g = saturate(0.39008157876901960784 * log(temperatureInKelvins) - 0.63184144378862745098);
+            }
+            else
+            {
+                float t = temperatureInKelvins - 60.0;
+                retColor.r = saturate(1.29293618606274509804 * pow(t, -0.1332047592));
+                retColor.g = saturate(1.12989086089529411765 * pow(t, -0.0755148492));
+            }
+
+            if (temperatureInKelvins >= 66.0)
+                retColor.b = 1.0;
+            else if(temperatureInKelvins <= 19.0)
+                retColor.b = 0.0;
+            else
+                retColor.b = saturate(0.54320678911019607843 * log(temperatureInKelvins - 10.0) - 1.19625408914);
+
+            return retColor;
+        }
+
+        float Luminance(vec3 color)
+        {
+            float fmin = min(min(color.r, color.g), color.b);
+            float fmax = max(max(color.r, color.g), color.b);
+            return (fmax + fmin) / 2.0;
+        }
+
+        vec3 HUEtoRGB(float H)
+        {
+            float R = abs(H * 6.0 - 3.0) - 1.0;
+            float G = 2.0 - abs(H * 6.0 - 2.0);
+            float B = 2.0 - abs(H * 6.0 - 4.0);
+            return saturate(vec3(R,G,B));
+        }
+
+        vec3 RGBtoHCV(vec3 RGB)
+        {
+            // Based on work by Sam Hocevar and Emil Persson
+            vec4 P = (RGB.g < RGB.b) ? vec4(RGB.bg, -1.0, 2.0/3.0) : vec4(RGB.gb, 0.0, -1.0/3.0);
+            vec4 Q = (RGB.r < P.x) ? vec4(P.xyw, RGB.r) : vec4(RGB.r, P.yzx);
+            float C = Q.x - min(Q.w, Q.y);
+            float H = abs((Q.w - Q.y) / (6.0 * C + EPSILON) + Q.z);
+            return vec3(H, C, Q.x);
+        }
+
+        vec3 RGBtoHSL(vec3 RGB)
+        {
+            vec3 HCV = RGBtoHCV(RGB);
+            float L = HCV.z - HCV.y * 0.5;
+            float S = HCV.y / (1.0 - abs(L * 2.0 - 1.0) + EPSILON);
+            return vec3(HCV.x, S, L);
+        }
+
+        vec3 HSLtoRGB(in vec3 HSL)
+        {
+            vec3 RGB = HUEtoRGB(HSL.x);
+            float C = (1.0 - abs(2.0 * HSL.z - 1.0)) * HSL.y;
+            return (RGB - 0.5) * C + vec3(HSL.z);
+        }
+
+        bool point_inside_trigon(vec2 s, vec2 a, vec2 b, vec2 c)
+        {
+            float as_x = s.x - a.x;
+            float as_y = s.y - a.y;
+
+            bool s_ab = (b.x - a.x) * as_y - (b.y - a.y) * as_x > 0;
+
+            if ((c.x - a.x) * as_y - (c.y - a.y) * as_x > 0 == s_ab) 
+                return false;
+            if ((c.x - b.x) * (s.y - b.y) - (c.y - b.y)*(s.x - b.x) > 0 != s_ab) 
+                return false;
+            return true;
+        }
+
+        vec2 vec_from_angle(float angle){
+            return vec2(cos(angle), sin(angle));
+        }
+
+        float heat_from_time_of_day(float time_of_day){
+            return 2000 + abs(sin((M_PI/720)*time_of_day))*4500;
+        }
+
+        float luminance_from_time_of_day(float time_of_day){
+            if(time_of_day >= 750){
+                return 0.4;
+            }
+            return 0.4 - sin((M_PI/720)*time_of_day)*0.4;
         }
 
         void main(){
@@ -136,7 +243,32 @@ fragment_source = """#version 330 core
                     baseColor = texture(tex_pla0, texPosition) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_des1, tex1Position) * vec4(0.33, 0.33, 0.33, 0.33) + texture(tex_pla2, tex2Position) * vec4(0.33, 0.33, 0.33, 0.33);
                     break;
             }
-            fragColor = vec4(baseColor.r+darkenPixel1*baseColor.r, baseColor.g+darkenPixel1*baseColor.r, baseColor.b+darkenPixel1*baseColor.r, alpha);
+            vec3 original = vec3(baseColor.r+darkenPixel1*baseColor.r, baseColor.g+darkenPixel1*baseColor.r, baseColor.b+darkenPixel1*baseColor.r);
+            vec3 colorTempRGB = ColorTemperatureToRGB(heat_from_time_of_day(time_of_day));
+
+            float finalLuminance = Luminance(original);
+            vec3 blended = mix(original, original * colorTempRGB, 1);
+            vec3 resultHSL = RGBtoHSL(blended);
+            vec2 direction_b = vec_from_angle(car_angle+HEADLIGHTRANGE);
+            direction_b.x *= 2.25;
+            direction_b.y *= 4;
+            vec2 direction_c = vec_from_angle(car_angle-HEADLIGHTRANGE);
+            direction_c.x *= 2.25;
+            direction_c.y *= 4;
+            vec2 point_b = car_screen_pos+direction_b;
+            vec2 point_c = car_screen_pos+direction_c;
+            if(!point_inside_trigon(texture_coords.xy, car_screen_pos, point_b, point_c)){
+                finalLuminance -= luminance_from_time_of_day(time_of_day);
+            }
+            else{
+                float distance_from_point = sqrt(pow(car_screen_pos.x-texture_coords.x, 2) + pow(car_screen_pos.y-texture_coords.y, 2));
+                finalLuminance -= luminance_from_time_of_day(time_of_day)*min((distance_from_point), 1);
+            }
+
+            vec3 luminancePreservedRGB = HSLtoRGB(vec3(resultHSL.x, resultHSL.y, finalLuminance));        
+
+            fragColor = vec4(mix(blended, luminancePreservedRGB, 0.75), alpha);
+            // fragColor = vec4(baseColor.r+darkenPixel1*baseColor.r, baseColor.g+darkenPixel1*baseColor.r, baseColor.b+darkenPixel1*baseColor.r, alpha);
         }
 """
 
@@ -149,6 +281,11 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.program = shaderprogram
         self.cam_x = 0
         self.cam_y = 0
+        self.car_x = 0
+        self.car_y = 0
+        self.car_dir_x = 0
+        self.car_dir_y = 0
+        self.time_of_day = 0
         self.alpha = alpha
         self.tile_offset = tile_offset
         self._SIZE_X = size_x
@@ -160,11 +297,13 @@ class WorldGenGroup(pyglet.graphics.Group):
     def pixel_pos_to_world(self, x, y):
         return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/256), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/256))
 
-    def update(self, cam_x, cam_y):
+    def update(self, time_of_day, cam_x, cam_y, car_x, car_y, car_angle):
+        self.time_of_day = time_of_day
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)
+        self.car_x, self.car_y = self.pixel_to_screen((car_x-cam_x)+np.cos(car_angle)*16, (car_y-cam_y)+np.sin(car_angle)*16)
+        self.car_angle = car_angle
         print(self.cam_x, self.cam_y)
         print(self.pixel_pos_to_world(cam_x, cam_y))
-        self.program["time"] = time.time()%10000
 
     def set_state(self):
         self.program.use()
@@ -179,7 +318,7 @@ class WorldGenGroup(pyglet.graphics.Group):
         glActiveTexture(GL_TEXTURE3)
         glBindTexture(self.textures[2+self.tile_offset].target, self.textures[2+self.tile_offset].id)
         glActiveTexture(GL_TEXTURE4)
-        glBindTexture(self.textures[3].target, self.textures[3].id)
+        glBindTexture(self.textures[3+self.tile_offset].target, self.textures[3+self.tile_offset].id)
         glActiveTexture(GL_TEXTURE5)
         glBindTexture(self.textures[4+self.tile_offset].target, self.textures[4+self.tile_offset].id)
         glActiveTexture(GL_TEXTURE6)
@@ -207,6 +346,9 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.program["alpha"] = self.alpha
         self.program["cam_coords"] = [self.cam_x, self.cam_y]
         self.program["time"] = time.time()%10000
+        self.program["car_screen_pos"] = [self.car_x, self.car_y]
+        self.program["car_angle"] = self.car_angle
+        self.program["time_of_day"] = self.time_of_day
         #print(self.program["cam_coords"])
         #self.program["mask"] = self.mask.id
         #self.program["map"] = self.map_texture.id

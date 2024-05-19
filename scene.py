@@ -1,5 +1,6 @@
 import pyglet
 from pyglet.gl import *
+import numpy as np
 from abc import ABC, abstractmethod
 from world_gen import WorldGen
 from tileobject import TilingMap
@@ -40,6 +41,8 @@ class MainGameScene(Scene):
 
         self.npc_manager = NpcManager(self.sprite_batch)
 
+        self.time_of_day = 120
+
         pyglet.clock.schedule_interval(self.update, 1/60)
 
         weapon = Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0)
@@ -62,6 +65,10 @@ class MainGameScene(Scene):
         self.overlay.blit(0, 0, width=self._SIZE_X*self._window_scale, height=self._SIZE_Y*self._window_scale)
 
     def update(self, dt):
+        self.time_of_day += dt*60
+        self.time_of_day %= 1440
+        print(self.time_of_day//60)
+        print(self.time_of_day%60)
         bullet = self.player.update(self._inputo, dt)
         if bullet != None:
             self.bullet_manager.add_bullet(bullet, True)
@@ -74,7 +81,7 @@ class MainGameScene(Scene):
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
         self.hud.update(self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
-        self.worldgen.group.update(self.cam_x, self.cam_y)
+        self.worldgen.group.update(self.time_of_day, self.cam_x, self.cam_y, self.player.playercar.x, self.player.playercar.y, -np.radians(self.player.playercar.sprite.rotation-90))
         self.tilingmap.update(self.cam_x, self.cam_y)
         if self._inputo.openinv:
             self._inputo.openinv = 0

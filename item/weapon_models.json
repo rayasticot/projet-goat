@@ -13,6 +13,96 @@
             "reach": 5000,
             "accuracy": 1,
             "damage": 29
+        },
+
+        {
+			"itype": 0,
+            "image": 3,
+            "name": "Remington 870",
+            "desc": "Pompe",
+            "weight": 3500,
+            "capacity": 4,
+            "loadtime": 3,
+            "bullet_type": "20mm",
+            "rate": 1,
+            "reach": 2000,
+            "accuracy": 1,
+            "damage": 70
+        },
+
+        {
+			"itype": 0,
+            "image": 4,
+            "name": "FAMAS",
+            "desc": "Fusil",
+            "weight": 3780,
+            "capacity": 25,
+            "loadtime": 2,
+            "bullet_type": "7.62mm",
+            "rate": 17,
+            "reach": 5000,
+            "accuracy": 2,
+            "damage": 20
+        },
+
+        {
+			"itype": 0,
+            "image": 5,
+            "name": "Glock 17",
+            "desc": "Pistolet",
+            "weight": 625,
+            "capacity": 17,
+            "loadtime": 1,
+            "bullet_type": "9mm",
+            "rate": 3,
+            "reach": 1500,
+            "accuracy": 1,
+            "damage": 15
+        },
+
+        {
+			"itype": 0,
+            "image": 6,
+            "name": "M4A1",
+            "desc": "Fusili",
+            "weight": 2940,
+            "capacity": 30,
+            "loadtime": 2,
+            "bullet_type": "7.62mm",
+            "rate": 13,
+            "reach": 5000,
+            "accuracy": 2,
+            "damage": 35
+        },
+
+        {
+			"itype": 0,
+            "image": 7,
+            "name": "MP7",
+            "desc": "SMG",
+            "weight": 1000,
+            "capacity": 30,
+            "loadtime": 1.5,
+            "bullet_type": "9mm",
+            "rate": 15,
+            "reach": 2000,
+            "accuracy": 1,
+            "damage": 18
+        },
+
+        {
+			"itype": 0,
+            "image": 8,
+            "name": "P229",
+            "desc": "Pistolet",
+            "weight": 900,
+            "capacity": 15,
+            "loadtime": 1,
+            "bullet_type": "9mm",
+            "rate": 3,
+            "reach": 1000,
+            "accuracy": 1,
+            "damage": 10
         }
     ]
 }

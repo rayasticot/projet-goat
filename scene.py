@@ -19,7 +19,50 @@ class Scene(ABC):
     def update(self, dt):
         pass
 
+class TitleScreen(Scene):
+    def __init__(self, scale, size_x, size_y, inputo, window):
+        self._window_scale = scale
+        self._SIZE_X = size_x
+        self._SIZE_Y = size_y
+        self._inputo = inputo
+        self.overlay = pyglet.image.Texture.create(self._SIZE_X, self._SIZE_Y, internalformat=pyglet.gl.GL_RGBA8)
+        self.fbo = pyglet.image.Framebuffer()
+        self.fbo.attach_texture(self.overlay)
+        self.batch = pyglet.graphics.Batch()
+        self.bg = pyglet.sprite.Sprite(img=pyglet.image.load('img/titlescreen/titlescreen.png'), batch=self.batch)
+        self.logo_image = pyglet.image.load('img/titlescreen/logo.png')
+        self.logo_image.anchor_x = self.logo_image.width//2
+        self.logo_image.anchor_y = self.logo_image.height//2
+        self.logo = pyglet.sprite.Sprite(img=self.logo_image, batch=self.batch, x=self._SIZE_X//2, y=280)
+        self.button = pyglet.sprite.Sprite(img=pyglet.image.load('img/titlescreen/button.png'), batch=self.batch, x=208, y=65)
+        self.time = 0
 
+        pyglet.clock.schedule_interval(self.update, 1/60)
+
+    def __del__(self):
+        pyglet.clock.unschedule(self.update)
+    
+    def draw(self):
+        # afficher images
+        self.fbo.bind()
+        glClearColor(0.0, 0.0, 0.0, 0.0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self.batch.draw()
+        glEnable(GL_BLEND)
+        self.fbo.unbind()
+        glEnable(GL_BLEND)
+        self.overlay.blit(0, 0, width=self._SIZE_X*self._window_scale, height=self._SIZE_Y*self._window_scale)
+
+    def update(self, dt):
+        if self.button.x <= self._inputo.mx/self._window_scale < self.button.width + self.button.x and self.button.y <= self._inputo.my/self._window_scale < self.button.height + self.button.y:
+            self.button.color = (153, 0, 0)
+        else:
+            self.button.color = (255, 255, 255)
+        self.time += dt
+        self.time %= 10000
+        self.logo.scale = 0.1 * np.sin(np.pi * self.time/2) + 1
+        
+        
 class MainGameScene(Scene):
     def __init__(self, scale, size_x, size_y, inputo, window):
         self._window_scale = scale

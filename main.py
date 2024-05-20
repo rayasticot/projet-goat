@@ -2,7 +2,7 @@ import argparse
 
 import pyglet
 from pyglet.gl import *
-from scene import Scene, MainGameScene
+from scene import Scene, MainGameScene, TitleScreen
 from keyinput import Input 
 from keymap import Keymap
 
@@ -16,7 +16,7 @@ class Game(pyglet.window.Window):
         self._inputo = Input()
         self._fps_display = pyglet.window.FPSDisplay(window=self)
         super().__init__(self._SIZE_X*self._window_scale, self._SIZE_Y*self._window_scale, caption="Projet GOAT", fullscreen=False)
-        self.scene = MainGameScene(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
+        self.scene = TitleScreen(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
 
     def on_draw(self):
         self.switch_to()

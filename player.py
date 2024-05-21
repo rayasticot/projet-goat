@@ -24,14 +24,14 @@ class BulletManager:
         else:
             self.bullet_list_ennemy.append(bullet)
 
-    def update(self, delta_t, player, cam_x, cam_y):
+    def update(self, delta_t, player, obstacles, cam_x, cam_y):
         bullet_player_to_remove = []
         bullet_ennemy_to_remove = []
         for i in range(len(self.bullet_list_player)):
-            if self.bullet_list_player[i].update(delta_t, cam_x, cam_y):
+            if self.bullet_list_player[i].update(delta_t, obstacles, cam_x, cam_y):
                 bullet_player_to_remove.append(i)
         for i in range(len(self.bullet_list_ennemy)):
-            if self.bullet_list_ennemy[i].update(delta_t, cam_x, cam_y):
+            if self.bullet_list_ennemy[i].update(delta_t, obstacles, cam_x, cam_y):
                 bullet_ennemy_to_remove.append(i)
             player.check_bullet_hit(self.bullet_list_ennemy[i])
         new_bullet_list_player = []
@@ -68,7 +68,7 @@ class Bullet:
             return self.og_x, self.og_y
         return self.og_x + self.dir_x*(self.alive_time-0.1)*1860, self.og_y + self.dir_y*(self.alive_time-0.1)*1860
 
-    def update(self, dt, cam_x, cam_y):
+    def update(self, dt, obstacles, cam_x, cam_y):
         self.alive_time += dt
         self.pos_x += self.dir_x*dt*1860
         self.pos_y += self.dir_y*dt*1860
@@ -80,6 +80,9 @@ class Bullet:
         self.line.y2 = self.line.y2 - cam_y
         if self.alive_time >= self.destroy_time:
             return True
+        for obstacle in obstacles.values():
+            if obstacle.x <= self.line.x2 < obstacle.x+256 and obstacle.y <= self.line.y2 < obstacle.y+256:
+                return True
         return False
 
 
@@ -210,7 +213,7 @@ class PlayerCar:
             self.speed_y *= speed_to_change
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
 
-    def accelerate(self, inputo, delta_t):
+    def accelerate(self, inputo, delta_t, obstacles, cam_x, cam_y):
         self.decceletate(inputo, delta_t)
         accel_intensity = (inputo.up - inputo.dw*0.5)*delta_t*SPEED_ADD*(-1)
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
@@ -218,6 +221,17 @@ class PlayerCar:
         self.speed_y += (4/(self.speed_intensity+1))*self.dir_y*accel_intensity
         self.pos_x += self.speed_x
         self.pos_y += self.speed_y
+        spr_x, spr_y = self.pos_x - cam_x, self.pos_y - cam_y
+        touch = False
+        for obstacle in obstacles.values():
+            if obstacle.x <= spr_x < obstacle.x+256 and obstacle.y <= spr_y < obstacle.y+256:
+                touch = True
+                break
+        if touch:
+            self.pos_x -= self.speed_x
+            self.pos_y -= self.speed_y
+            self.speed_x = 0
+            self.speed_y = 0
         self.limit_speed(inputo)
 
     """
@@ -243,9 +257,9 @@ class PlayerCar:
         self.speed_y = 0
         self.speed_intensity = 0
 
-    def update(self, inputo, delta_t):
+    def update(self, inputo, delta_t, obstacles, cam_x, cam_y):
         self.rotate(inputo, delta_t)
-        self.accelerate(inputo, delta_t)
+        self.accelerate(inputo, delta_t, obstacles, cam_x, cam_y)
         self.sprite.rotation = np.degrees(np.arctan2(self.dir_y, self.dir_x)*(-1) + (np.pi/2) + np.pi)
         self.x, self.y = int(self.pos_x), int(self.pos_y)
 
@@ -297,7 +311,7 @@ class PlayerWalker:
         self.speed_x = 0
         self.speed_y = 0
 
-    def update(self, inputo, delta_t, acc_x_ow=None, acc_y_ow=None): # Attention multiplier acc_ow avec delta_t à l'avance
+    def update(self, inputo, delta_t, obstacles, cam_x, cam_y, acc_x_ow=None, acc_y_ow=None): # Attention multiplier acc_ow avec delta_t à l'avance
         dir_x = inputo.mx - ((self._SIZE_X*self._window_scale)//2)
         dir_y = inputo.my - ((self._SIZE_Y*self._window_scale)//2)
         dir_inten = np.sqrt(dir_x**2 + dir_y**2)
@@ -329,6 +343,17 @@ class PlayerWalker:
             self.speed_y *= 3
         self.pos_x += self.speed_x
         self.pos_y += self.speed_y
+        spr_x, spr_y = self.pos_x - cam_x, self.pos_y - cam_y
+        touch = False
+        for obstacle in obstacles.values():
+            if obstacle.x <= spr_x < obstacle.x+256 and obstacle.y <= spr_y < obstacle.y+256:
+                touch = True
+                break
+        if touch:
+            self.pos_x -= self.speed_x
+            self.pos_y -= self.speed_y
+            self.speed_x = 0
+            self.speed_y = 0
 
         self.set_back(dir_x, dir_y)
 
@@ -379,8 +404,7 @@ class Player:
         # Start playing
         self.mplayer.play()
 
-    def update(self, inputo, delta_t):
-        print(self.health)
+    def update(self, inputo, delta_t, obstacles):
         if self.health <= 0:
             self.playerwalker.sprite.image = self.playerwalker.m_image
             self.playerwalker.update_sprite(self.cam_x, self.cam_y)
@@ -400,11 +424,11 @@ class Player:
                     #self.radio()
                 if car_dir_inten < 256:
                     car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*8*delta_t, (car_dir_y/car_dir_inten)*8*delta_t
-                    self.playerwalker.update(inputo, delta_t, car_dir_x, car_dir_y)
+                    self.playerwalker.update(inputo, delta_t, obstacles, self.cam_x, self.cam_y, car_dir_x, car_dir_y)
                 else:
-                    self.playerwalker.update(inputo, delta_t)
+                    self.playerwalker.update(inputo, delta_t, obstacles, self.cam_x, self.cam_y)
             else:
-                self.playerwalker.update(inputo, delta_t)
+                self.playerwalker.update(inputo, delta_t, obstacles, self.cam_x, self.cam_y)
             self.cam_x = self.playerwalker.x - (self._SIZE_X//2)
             self.cam_y = self.playerwalker.y - (self._SIZE_Y//2)
             if inputo.rclick:
@@ -423,7 +447,7 @@ class Player:
                 self.mplayer.pause()
                 self.mplayer.next_source()
             else:
-                self.playercar.update(inputo, delta_t)
+                self.playercar.update(inputo, delta_t, obstacles, self.cam_x, self.cam_y)
             self.cam_x = self.playercar.x - (self._SIZE_X//2)
             self.cam_y = self.playercar.y - (self._SIZE_Y//2)
             if inputo.rclick:

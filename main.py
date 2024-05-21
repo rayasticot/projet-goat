@@ -16,7 +16,7 @@ class Game(pyglet.window.Window):
         self.keymap = Keymap(keymap)
         self._inputo = Input()
         self._fps_display = pyglet.window.FPSDisplay(window=self)
-        super().__init__(self._SIZE_X*self._window_scale, self._SIZE_Y*self._window_scale, caption="Projet GOAT", fullscreen=False)
+        super().__init__(self._SIZE_X*self._window_scale, self._SIZE_Y*self._window_scale, caption="Trafficant d'armes simulator", fullscreen=False)
         self.worldgen = WorldGen(self._window_scale, self._SIZE_X, self._SIZE_Y)
         self.scene = TitleScreen(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
 
@@ -95,7 +95,7 @@ class Game(pyglet.window.Window):
         self._inputo.my = y
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='Projet GOAT')
+    parser = argparse.ArgumentParser(prog="Trafficant d'armes simulator")
 
     parser.add_argument('--scale',type=int, default=3)
     parser.add_argument('--keymap',type=str, default="qwerty")

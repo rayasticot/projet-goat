@@ -36,7 +36,13 @@ class CarIndicatorHud:
 
 class Hud:
     def __init__(self, size_x, size_y, scale, batch):
+        self.group = pyglet.graphics.Group(1)
         self.car_indicator = CarIndicatorHud(size_x, size_y, scale, batch)
+        self.death = pyglet.sprite.Sprite(img=pyglet.image.load("img/gui/mort.png"), x=0, y=0, batch=batch, group=self.group)
+        self.death.visible = False
 
-    def update(self, car_x, car_y, cam_x, cam_y):
+    def update(self, player_health, car_x, car_y, cam_x, cam_y):
         self.car_indicator.update(car_x, car_y, cam_x, cam_y)
+        if player_health <= 0:
+            self.death.visible = True
+

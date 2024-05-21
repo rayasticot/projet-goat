@@ -4,24 +4,21 @@ import numpy as np
 from worldsprite import WorldSprite
 from player import Bullet
 from inventory import Weapon, WEAPON_MODELS
+from city import City, cities
 import astar
 
 
-NPC_IMAGES = [pyglet.image.load("img/npc0.png"), pyglet.image.load("img/npc1.png"), pyglet.image.load("img/npc2.png"), pyglet.image.load("img/npc3.png")]
+NPC_IMAGES = [pyglet.image.load("img/npc0.png"), pyglet.image.load("img/npc1.png"), pyglet.image.load("img/npc2.png"), pyglet.image.load("img/npc3.png"), pyglet.image.load("img/vendeur.png")]
 for image in NPC_IMAGES:
     image.anchor_x = image.width // 2
     image.anchor_y = image.height // 2
 NPC_IMAGES = tuple(NPC_IMAGES)
 
-NPC_MORT_IMAGES = [pyglet.image.load("img/npc0_m.png"), pyglet.image.load("img/npc1_m.png"), pyglet.image.load("img/npc2_m.png"), pyglet.image.load("img/npc3_m.png")]
+NPC_MORT_IMAGES = [pyglet.image.load("img/npc0_m.png"), pyglet.image.load("img/npc1_m.png"), pyglet.image.load("img/npc2_m.png"), pyglet.image.load("img/npc3_m.png"), pyglet.image.load("img/vendeur_m.png")]
 for image in NPC_MORT_IMAGES:
     image.anchor_x = image.width // 2
     image.anchor_y = image.height // 2
 NPC_MORT_IMAGES = tuple(NPC_MORT_IMAGES)
-
-VENDEUR_IMAGE = pyglet.image.load("img/vendeur.png")
-VENDEUR_IMAGE.anchor_x = VENDEUR_IMAGE.width // 2
-VENDEUR_IMAGE.anchor_y = VENDEUR_IMAGE.height // 2
 
 NPC_CARS = [pyglet.image.load("img/van.png"),]
 for image in NPC_CARS:
@@ -36,20 +33,35 @@ class NpcWalker:
         self.y = y
         self.npctype = npctype
         self.chosen_image = random.randint(0, 3)
+        if self.npctype == 3:
+            self.chosen_image = 4
         self.sprite = WorldSprite(batch=batch, img=NPC_IMAGES[self.chosen_image], x=0, y=0)
-        self.objective = self.get_objective() # INTEGRER COORDONNÉES D'UNE VILLE SUR LA MAP
         self.stress = 0
         self.speed_objective = 90
         self.health = health
-        self.weapon = weapon
+        if weapon != None:
+            self.weapon = weapon
+        else:
+            self.weapon = self.choose_weapon()
         self.incar = incar
         self.last_shot = 0
         self.time_since_load = 0
+        self.ideal_objective = self.choose_objective()
+        self.objective = self.ideal_objective
         self.dead = False
         self.batch = batch
 
-    def get_objective(self):
-        return (20000, -6000)
+    def choose_weapon(self):
+        if self.npctype == 0 or self.npctype == 3:
+            return None
+        return Weapon(WEAPON_MODELS[random.randint(0, len(WEAPON_MODELS)-1)], 0, 0, 0, 0, 0)
+
+    def choose_objective(self):
+        distances = []
+        for city in cities:
+            distances.append(np.sqrt((self.x-(city.x*256))**2 + (self.y-(city.y*256))**2))
+        min_city = distances.index(min(distances))
+        return cities[min_city].x*256 + random.uniform(-1, 1)*256, cities[min_city].y*256 + random.uniform(-1, 1)*256
 
     def check_bullet_hit(self, bullet):
         if self.x < bullet.pos_x < self.x+32:
@@ -77,19 +89,11 @@ class NpcWalker:
 
     def get_mov_from_dir(self, dir_x, dir_y, delta_t):
         mov_x, mov_y = dir_x, dir_y
-        match(self.npctype):
-            case 0:
-                self.speed_objective = 90
-                if self.stress > 1:
-                    self.speed_objective = 180
-                mov_x *= self.speed_objective*delta_t
-                mov_y *= self.speed_objective*delta_t
-            case 2:
-                self.speed_objective = 90
-                if self.stress > 1:
-                    self.speed_objective = 180
-                mov_x *= self.speed_objective*delta_t
-                mov_y *= self.speed_objective*delta_t
+        self.speed_objective = 90
+        if self.stress > 1:
+            self.speed_objective = 180
+        mov_x *= self.speed_objective*delta_t
+        mov_y *= self.speed_objective*delta_t
         return mov_x, mov_y
 
     def get_mov_to_point(self, x2, y2, obstacle_map, cam_x, cam_y, delta_t):
@@ -148,23 +152,36 @@ class NpcWalker:
             self.update_sprite(cam_x, cam_y)
             return None
         match(self.npctype):
-            case 0:
-                self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
-                self.x += self.mov_x
-                self.y += self.mov_y
-            case 2:
-                if self.health < 25:
-                    self.objective = self.get_objective()
+            case 1:
+                if self.health < 25 or self.stress == 0:
+                    self.objective = self.ideal_objective
                 else:
                     if self.get_distance_to_player(player_x, player_y) > 200:
                         self.objective = (player_x, player_y)
                     else:
-                        self.objective = self.get_objective()
-                self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
-                self.x += self.mov_x
-                self.y += self.mov_y
+                        self.objective = self.ideal_objective
+            case 2:
+                if self.health < 25:
+                    self.objective = self.ideal_objective
+                else:
+                    if self.get_distance_to_player(player_x, player_y) > 200:
+                        self.objective = (player_x, player_y)
+                    else:
+                        self.objective = self.ideal_objective
+            case 3:
+                if self.get_distance_to_player(player_x, player_y) > 200:
+                    self.objective = (player_x, player_y)
+                else:
+                    self.objective = self.ideal_objective
+        self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
+        self.x += self.mov_x
+        self.y += self.mov_y
         self.update_sprite(cam_x, cam_y)
-        return self.weapon_update(player_x, player_y, delta_t)
+        if self.npctype == 1 and self.stress > 0:
+            return self.weapon_update(player_x, player_y, delta_t)
+        if self.npctype == 2:
+            return self.weapon_update(player_x, player_y, delta_t)
+        return None
 
 
 class NpcCar:
@@ -189,8 +206,8 @@ class NpcCar:
 class NpcManager:
     def __init__(self, batch):
         self.batch = batch
-        self.npcs = [NpcWalker(0, 0, 100, 2, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
-        self.npcs_cars = []
+        self.npcs = [NpcWalker(0, 0, 100, 0, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
+        #self.npcs_cars = []
     
     def update(self, bullet_manager, item_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
         new_npcs = []

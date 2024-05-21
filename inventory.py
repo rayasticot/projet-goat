@@ -61,15 +61,11 @@ class Weapon(Item):
         self.capacity = model.capacity
         self.loadtime = model.loadtime
         self.bullet_type = model.bullet_type
-        self.rate = model.rate
-        self.reach = model.reach
-        self.accuracy = model.accuracy
-        self.damage = model.damage
+        self.rate = model.rate - model.rate*rate_dmg
+        self.reach = model.reach - model.reach*reach_dmg
+        self.accuracy = model.accuracy + model.accuracy*accuracy_dmg
+        self.damage = model.damage - model.damage*damage_dmg
         self.loaded = loaded
-        self.rate_dmg = rate_dmg
-        self.reach_dmg = reach_dmg
-        self.accuracy_dmg = accuracy_dmg
-        self.damage_dmg = damage_dmg
 
 
 class BulletBox(Item):
@@ -574,10 +570,12 @@ class GroundItem:
 class GroundItemManager:
     def __init__(self, batch):
         self.batch = batch
-        self.groud_item_list = [GroundItem(Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), 200, 200)]
-        self.groud_item_list[0].item.sprite.batch = self.batch
+        self.groud_item_list = []#[GroundItem(Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), 100*256, -300*256)]
+        #self.groud_item_list[0].item.sprite.batch = self.batch
 
     def add_item(self, item, x, y):
+        if item == None:
+            return
         self.groud_item_list.append(GroundItem(item, x, y))
         self.groud_item_list[-1].item.sprite.batch = self.batch
 

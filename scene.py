@@ -89,21 +89,20 @@ class MainGameScene(Scene):
         self.item_manager = GroundItemManager(self.sprite_batch)
         self.inventory = Inventory(self._SIZE_X, self._SIZE_Y, self.item_manager)
         self.hud = Hud(self._SIZE_X, self._SIZE_Y, self._window_scale, self.sprite_batch)
-        self.tilingmap = TilingMap(self.cam_x, self.cam_y, self._SIZE_X, self._SIZE_Y, self.sprite_batch)
-        self.player = Player(self.sprite_batch, 0, 0, self._SIZE_X, self._SIZE_Y, self._window_scale, self.inventory)
+        self.npc_manager = NpcManager(self.sprite_batch)
+        self.tilingmap = TilingMap(self.cam_x, self.cam_y, self._SIZE_X, self._SIZE_Y, self.npc_manager, self.sprite_batch)
+        self.player = Player(self.sprite_batch, 100*256, -323*256, self._SIZE_X, self._SIZE_Y, self._window_scale, self.inventory)
         self.bullet_manager = BulletManager()
         self.overlay = pyglet.image.Texture.create(self._SIZE_X, self._SIZE_Y, internalformat=pyglet.gl.GL_RGBA8)
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
 
-        self.npc_manager = NpcManager(self.sprite_batch)
-
         self.time_of_day = 120
 
         pyglet.clock.schedule_interval(self.update, 1/60)
 
-        #weapon = Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0)
-        #print(self.inventory.pickup(weapon))
+        weapon = Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0)
+        print(self.inventory.pickup(weapon))
 
         #self.inventory.pickup_item()
 
@@ -126,7 +125,7 @@ class MainGameScene(Scene):
         self.time_of_day %= 1440
         #print(self.time_of_day//60)
         #print(self.time_of_day%60)
-        bullet = self.player.update(self._inputo, dt)
+        bullet = self.player.update(self._inputo, dt, self.tilingmap.sprite_dict)
         if bullet != None:
             self.bullet_manager.add_bullet(bullet, True)
         if self.player.death_time > 4:
@@ -137,10 +136,10 @@ class MainGameScene(Scene):
             self.bullet_manager.bullet_list_ennemy, dt\
         )
         self.item_manager.update(self.inventory, self.player.playerwalker.pos_x, self.player.playerwalker.pos_y, self.player.selection, self.cam_x, self.cam_y, dt)
-        self.bullet_manager.update(dt, self.player, self.cam_x, self.cam_y)
+        self.bullet_manager.update(dt, self.player, self.tilingmap.sprite_dict, self.cam_x, self.cam_y)
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
-        self.hud.update(self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
+        self.hud.update(self.player.health, self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
         self.worldgen.group.update(self.time_of_day, self.cam_x, self.cam_y, self.player.playercar.x, self.player.playercar.y, -np.radians(self.player.playercar.sprite.rotation-90))
         self.tilingmap.update(self.cam_x, self.cam_y)
         if self._inputo.openinv:

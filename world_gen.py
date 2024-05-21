@@ -392,6 +392,7 @@ class WorldGen:
                  pyglet.image.load("img/tiles/sec2.png"),
                  pyglet.image.load("img/tiles/pla0.png"),
                  pyglet.image.load("img/tiles/pla2.png"))
+        self.raw_map = mape.get_image_data()
         self._window_scale = scale
         self._SIZE_X = size_x
         self._SIZE_Y = size_y

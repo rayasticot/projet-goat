@@ -63,15 +63,15 @@ def find_path(grid, x1, y1, x2, y2):
             Cell(q.x-1, q.y+1, q.g+1.4142135623730951, x2, y2, q), Cell(q.x-1, q.y-1, q.g+1.4142135623730951, x2, y2, q)
         )
         for cell in nexts:
-            print(cell)
+            #print(cell)
             if cell.x == x2 and cell.y == y2:
                 return cell
             if inside(grid, cell.x, cell.y) and not grid[cell.x][cell.y] and not closedl[cell.x][cell.y]:
                 if opena[cell.x][cell.y] == float('inf') or opena[cell.x][cell.y] > cell.f:
-                    print("b")
+                    #print("b")
                     opena[cell.x][cell.y] = cell.f
                     openl.append(cell)
-            print("a")
+            #print("a")
     return False
 
 

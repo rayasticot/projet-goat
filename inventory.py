@@ -8,11 +8,19 @@ from worldsprite import WorldSprite
 ITEM_IMAGES = (
     pyglet.image.load("img/items/ak.png"),
     pyglet.image.load("img/items/9mm.png"),
-    pyglet.image.load("img/items/7.62mm.png")
+    pyglet.image.load("img/items/7.62mm.png"),
+    pyglet.image.load("img/items/Cyma.png"),
+    pyglet.image.load("img/items/Famas.png"),
+    pyglet.image.load("img/items/Glock17.png"),
+    pyglet.image.load("img/items/M4A1.png"),
+    pyglet.image.load("img/items/MP7.png"),
+    pyglet.image.load("img/items/P229.png"),
+    pyglet.image.load("img/items/20mm.png"),
 )
 BULLET_IMAGE = {
     "9mm": 1,
-    "7.62mm": 2
+    "7.62mm": 2,
+    "20mm": 9
 }
 
 
@@ -177,7 +185,8 @@ class Inventory:
         self.keys = [None]*16
         self.bullets = {
             "9mm": 100,
-            "7.62mm": 100
+            "7.62mm": 100,
+            "20mm": 100
         }
         self.hand = [None]*4
 

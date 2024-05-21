@@ -50,6 +50,7 @@ class NpcWalker:
         self.objective = self.ideal_objective
         self.dead = False
         self.batch = batch
+        self.shot_sound = pyglet.media.load("snd/gun.mp3", streaming=False)
 
     def choose_weapon(self):
         if self.npctype == 0 or self.npctype == 3:
@@ -138,6 +139,9 @@ class NpcWalker:
         if self.time_since_load < self.weapon.loadtime:
             return None
         if self.last_shot > 1/self.weapon.rate:
+            self.shot_player = pyglet.media.Player()
+            self.shot_player.queue(self.shot_sound)
+            self.shot_player.play()
             self.last_shot = 0
             self.weapon.loaded -= 1
             dir_x, dir_y = player_x-self.x, player_y-self.y
@@ -208,6 +212,8 @@ class NpcManager:
         self.batch = batch
         self.npcs = [NpcWalker(0, 0, 100, 0, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
         #self.npcs_cars = []
+        self.scream_sound = pyglet.media.load("snd/scream.mp3", streaming=False)
+        self.scream_player = pyglet.media.Player()
     
     def update(self, bullet_manager, item_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
         new_npcs = []
@@ -219,6 +225,8 @@ class NpcManager:
             for bullet in bullet_list_player:
                 npc.check_bullet_hit(bullet)
                 if npc.health <= 0 and not npc.dead:
+                    self.scream_player.queue(self.scream_sound)
+                    self.scream_player.play()
                     npc.dead = True
                     item_manager.add_item(npc.weapon, npc.x, npc.y)
             bullet = npc.update(player_x, player_y, cam_x, cam_y, obstacle_map, delta_t)

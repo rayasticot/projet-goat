@@ -95,6 +95,10 @@ class WeaponControl:
         self.last_shot = 0
         self.time_since_load = 0
         self.batch = batch
+        self.shot_sound = pyglet.media.load("snd/gun.mp3", streaming=False)
+        self.reload_sound = pyglet.media.load("snd/reload.mp3", streaming=False)
+        self.shot_player = pyglet.media.Player()
+        self.reload_player = pyglet.media.Player()
 
     def update(self, pos_x, pos_y, dir_x, dir_y, inputo, dt):
         self.pos_x = pos_x
@@ -111,6 +115,8 @@ class WeaponControl:
             inputo.reload = 0
             if self.weapon.loaded < self.weapon.capacity and self.time_since_load > self.weapon.loadtime:
                 self.weapon.loaded = self.inventory.take_bullets(self.weapon.bullet_type, self.weapon.capacity)
+                self.reload_player.queue(self.reload_sound)
+                self.reload_player.play()
                 if self.weapon.loaded > 0:
                     self.time_since_load = 0
         if inputo.lclick:
@@ -119,6 +125,8 @@ class WeaponControl:
             if self.last_shot > 1/self.weapon.rate:
                 self.last_shot = 0
                 self.weapon.loaded -= 1
+                self.shot_player.queue(self.shot_sound)
+                self.shot_player.play()
                 return Bullet(pos_x, pos_y, dir_x, dir_y, self.weapon.reach, self.weapon.damage, self.weapon.accuracy, self.batch)
         return None
 
@@ -143,6 +151,11 @@ class PlayerCar:
         self.sprite.scale_x = 1/4
         self.sprite.scale_y = 1/4
         #self.sprite.scale = self._window_scale
+        self.engine_sound = pyglet.media.load("snd/engine.wav", streaming=False)
+        self.engine_player = pyglet.media.Player()
+        self.engine_player.queue(self.engine_sound)
+        self.engine_player.loop = True
+        self.engine_player.play()
 
     def hbrake_func(self, x):
         if x <= 0:
@@ -217,6 +230,7 @@ class PlayerCar:
         self.decceletate(inputo, delta_t)
         accel_intensity = (inputo.up - inputo.dw*0.5)*delta_t*SPEED_ADD*(-1)
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
+        self.engine_player.volume = self.speed_intensity/FRONT_SPEED_L
         self.speed_x += (4/(self.speed_intensity+1))*self.dir_x*accel_intensity
         self.speed_y += (4/(self.speed_intensity+1))*self.dir_y*accel_intensity
         self.pos_x += self.speed_x
@@ -284,6 +298,11 @@ class PlayerWalker:
         self.image.anchor_x = self.image.width // 2
         self.image.anchor_y = self.image.height // 2
         self.sprite = WorldSprite(batch=batch, img=self.image, x=(((self._SIZE_X)//2)), y=(((self._SIZE_Y)//2)))
+        self.step_sound = pyglet.media.load("snd/footsteps.wav", streaming=False)
+        self.step_player = pyglet.media.Player()
+        self.step_player.queue(self.step_sound)
+        self.step_player.loop = True
+        self.is_walking = False
 
     def set_back(self, dir_x, dir_y):
         self.back_x = self.pos_x - dir_x*32
@@ -334,6 +353,12 @@ class PlayerWalker:
             acc_x, acc_y = acc_x/acc_inten, acc_y/acc_inten
             self.speed_x += acc_x
             self.speed_y += acc_y
+            if not self.is_walking:
+                self.step_player.play()
+                self.is_walking = True
+        else:
+            self.step_player.pause()
+            self.is_walking = False
         self.deccelerate(delta_t)
         speed_inten = np.sqrt(self.speed_x**2 + self.speed_y**2)
         if speed_inten > 3:
@@ -410,6 +435,8 @@ class Player:
             self.playerwalker.update_sprite(self.cam_x, self.cam_y)
             self.playercar.update_sprite(self.cam_x, self.cam_y)
             self.death_time += delta_t
+            self.playerwalker.is_walking = False
+            self.playerwalker.step_player.pause()
             return None
         if self.selection:
             if inputo.getin:

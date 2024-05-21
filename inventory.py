@@ -572,6 +572,8 @@ class GroundItemManager:
         self.batch = batch
         self.groud_item_list = []#[GroundItem(Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), 100*256, -300*256)]
         #self.groud_item_list[0].item.sprite.batch = self.batch
+        self.pickup_sound = pyglet.media.load("snd/pickup.mp3", streaming=False)
+        self.pickup_player = pyglet.media.Player()
 
     def add_item(self, item, x, y):
         if item == None:
@@ -593,6 +595,8 @@ class GroundItemManager:
                 continue
             item.item.sprite.set_relative_pos(item.pos_x, item.pos_y, cam_x, cam_y)
             if item.pos_x <= player_x < item.pos_x+64 and item.pos_y <= player_y < item.pos_y+64:
+                self.pickup_player.queue(self.pickup_sound)
+                self.pickup_player.play()
                 if player_selection:
                     if inventory.pickup(item.item):
                         continue

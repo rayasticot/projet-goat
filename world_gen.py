@@ -285,6 +285,7 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.car_y = 0
         self.car_dir_x = 0
         self.car_dir_y = 0
+        self.car_angle = 0
         self.time_of_day = 0
         self.alpha = alpha
         self.tile_offset = tile_offset
@@ -302,8 +303,8 @@ class WorldGenGroup(pyglet.graphics.Group):
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)
         self.car_x, self.car_y = self.pixel_to_screen((car_x-cam_x)+np.cos(car_angle)*16, (car_y-cam_y)+np.sin(car_angle)*16)
         self.car_angle = car_angle
-        print(self.cam_x, self.cam_y)
-        print(self.pixel_pos_to_world(cam_x, cam_y))
+        #print(self.cam_x, self.cam_y)
+        #print(self.pixel_pos_to_world(cam_x, cam_y))
 
     def set_state(self):
         self.program.use()

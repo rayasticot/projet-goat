@@ -3,6 +3,7 @@ import argparse
 import pyglet
 from pyglet.gl import *
 from scene import Scene, MainGameScene, TitleScreen
+from world_gen import WorldGen
 from keyinput import Input 
 from keymap import Keymap
 
@@ -16,7 +17,18 @@ class Game(pyglet.window.Window):
         self._inputo = Input()
         self._fps_display = pyglet.window.FPSDisplay(window=self)
         super().__init__(self._SIZE_X*self._window_scale, self._SIZE_Y*self._window_scale, caption="Projet GOAT", fullscreen=False)
+        self.worldgen = WorldGen(self._window_scale, self._SIZE_X, self._SIZE_Y)
         self.scene = TitleScreen(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
+
+    def switch_scene(self, new_scene):
+        pyglet.clock.unschedule(self.scene.update)
+        match new_scene:
+            case -1:
+                self.close()
+            case 0:
+                self.scene = TitleScreen(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
+            case 1:
+                self.scene = MainGameScene(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self, self.worldgen)
 
     def on_draw(self):
         self.switch_to()
@@ -85,7 +97,7 @@ class Game(pyglet.window.Window):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='Projet GOAT')
 
-    parser.add_argument('--scale',type=int, default=2)
+    parser.add_argument('--scale',type=int, default=3)
     parser.add_argument('--keymap',type=str, default="qwerty")
 
     args = parser.parse_args()

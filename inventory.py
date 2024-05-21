@@ -2,6 +2,7 @@ import pyglet
 import numpy as np
 from dataclasses import dataclass
 import json
+from worldsprite import WorldSprite
 
 
 ITEM_IMAGES = (
@@ -19,13 +20,13 @@ class Item:
     def __init__(self, iteminfo, itype, image_index, name, desc, weight):
         if not iteminfo:
             self.itype = itype
-            self.sprite = pyglet.sprite.Sprite(img=ITEM_IMAGES[image_index])
+            self.sprite = WorldSprite(img=ITEM_IMAGES[image_index])
             self.name = name
             self.desc = desc
             self.weight = weight
             return
         self.itype = iteminfo["itype"]
-        self.sprite = pyglet.sprite.Sprite(img=ITEM_IMAGES[iteminfo["image"]])
+        self.sprite = WorldSprite(img=ITEM_IMAGES[iteminfo["image"]])
         self.name = iteminfo["name"]
         self.desc = iteminfo["desc"]
         self.weight = iteminfo["weight"]
@@ -106,8 +107,9 @@ class GridItem(pyglet.gui.WidgetBase):
 
     def mouse_release(self, x, y, buttons, modifiers):
         if not self._enabled or not self._check_hit(x, y):
-            return
+            return False
         self._inventory.item_released(self.item_index, self.i_type)
+        return True
 
     def mouse_motion(self, x, y, dx, dy):
         if self._check_hit(x, y):
@@ -122,11 +124,12 @@ class GridItem(pyglet.gui.WidgetBase):
                 self._sprite.image = self._empty_t
 
     def update(self, inputo, scale, press, release):
+        self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
         if press:
             self.mouse_press(inputo.mx//scale, inputo.my//scale, None, None)
         if release:
-            self.mouse_release(inputo.mx//scale, inputo.my//scale, None, None)
-        self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
+            return self.mouse_release(inputo.mx//scale, inputo.my//scale, None, None)
+        return False
     
     def enable(self, value):
         self._enabled = value
@@ -165,7 +168,7 @@ class ArrowButton(pyglet.gui.WidgetBase):
 
 
 class Inventory:
-    def __init__(self, size_x, size_y):
+    def __init__(self, size_x, size_y, item_manager):
         self.batch = pyglet.graphics.Batch()
 
         self.arms = [None]*3
@@ -187,6 +190,8 @@ class Inventory:
         self.widget_hand = [None]*4
 
         self.indicator_label = pyglet.text.Label("", font_name="Times New Roman", font_size=24, x=size_x/2, y=size_y-24, anchor_x="center", anchor_y="center", batch=self.batch, color=(142, 0, 58, 255))
+
+        self.item_manager = item_manager
 
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
@@ -312,12 +317,12 @@ class Inventory:
         return False
 
 
-    def throwaway(self, inv, index):
+    def throwaway(self, inv, index, manager, x, y):
         if inv[index] == None:
             return None
         item = inv[index]
         inv[index] = None
-        return item
+        manager.add_item(item, x, y)
 
 
     def finalswitch(self, inv1, index1, inv2, index2):
@@ -456,7 +461,7 @@ class Inventory:
             self.hand[i].sprite.visible = True
 
 
-    def update(self, inputo, scale):
+    def update(self, inputo, scale, player_back_x, player_back_y):
         press, release = 0, 0
         if self.last_lclick != inputo.lclick:
             if inputo.lclick:
@@ -485,41 +490,50 @@ class Inventory:
             case 4:
                 e_bull = True
                 self.indicator_label.text = "munitions"
+        released_in_case = False
         for i, widget in enumerate(self.widget_arms):
             if self.arms[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_arms)
-            widget.update(inputo, scale, press, release)
+            if not released_in_case:
+                released_in_case = widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_equi):
             if self.equi[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_equi)
-            widget.update(inputo, scale, press, release)
+            if not released_in_case:
+                released_in_case = widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_cons):
             if self.cons[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_cons)
-            widget.update(inputo, scale, press, release)
+            if not released_in_case:
+                released_in_case = widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_keys):
             if self.keys[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(e_keys)
-            widget.update(inputo, scale, press, release)
+            if not released_in_case:
+                released_in_case = widget.update(inputo, scale, press, release)
         for i, widget in enumerate(self.widget_hand):
             if self.hand[i]:
                 widget.presence = True
             else:
                 widget.presence = False
             widget.enable(True)
-            widget.update(inputo, scale, press, release)
+            if not released_in_case:
+                released_in_case = widget.update(inputo, scale, press, release)
+        if not released_in_case and release:
+            if self.pressed_item_type != None and self.pressed_item_index != None:
+                self.throwaway(self.list_from_type(self.pressed_item_type), self.pressed_item_index, self.item_manager, player_back_x, player_back_y)
         i = 0
         for key, value in self.bullets.items():
             self.sprite_bullets[i].visible = e_bull
@@ -539,3 +553,41 @@ class Inventory:
             self.released_item_type = None
         
         self.place_items(inputo, scale)
+
+
+class GroundItem:
+    def __init__(self, item, pos_x, pos_y):
+        self.item = item
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+
+
+class GroundItemManager:
+    def __init__(self, batch):
+        self.batch = batch
+        self.groud_item_list = [GroundItem(Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), 200, 200)]
+        self.groud_item_list[0].item.sprite.batch = self.batch
+
+    def add_item(self, item, x, y):
+        self.groud_item_list.append(GroundItem(item, x, y))
+        self.groud_item_list[-1].item.sprite.batch = self.batch
+
+    def grid_cos_to_pixel(self, grid_x, grid_y, cam_x, cam_y):
+        return (256*grid_x) + cam_x - (14*256), (256*grid_y) + cam_y - (15*256)
+
+    def pixel_to_grid_cos(self, x, y, cam_x, cam_y):
+        return int((x//256) - (cam_x//256)) + 14, int((y//256) - (cam_y//256)) + 15
+
+    def update(self, inventory, player_x, player_y, player_selection, cam_x, cam_y, delta_t):
+        new_item_list = []
+        for item in self.groud_item_list:
+            grid_x, grid_y = self.pixel_to_grid_cos(item.pos_x, item.pos_y, cam_x, cam_y)
+            if not 1 <= grid_x < 29 or not 1 <= grid_y < 29:
+                continue
+            item.item.sprite.set_relative_pos(item.pos_x, item.pos_y, cam_x, cam_y)
+            if item.pos_x <= player_x < item.pos_x+64 and item.pos_y <= player_y < item.pos_y+64:
+                if player_selection:
+                    if inventory.pickup(item.item):
+                        continue
+            new_item_list.append(item)
+        self.groud_item_list = new_item_list

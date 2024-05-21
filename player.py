@@ -24,7 +24,7 @@ class BulletManager:
         else:
             self.bullet_list_ennemy.append(bullet)
 
-    def update(self, delta_t, cam_x, cam_y):
+    def update(self, delta_t, player, cam_x, cam_y):
         bullet_player_to_remove = []
         bullet_ennemy_to_remove = []
         for i in range(len(self.bullet_list_player)):
@@ -33,6 +33,7 @@ class BulletManager:
         for i in range(len(self.bullet_list_ennemy)):
             if self.bullet_list_ennemy[i].update(delta_t, cam_x, cam_y):
                 bullet_ennemy_to_remove.append(i)
+            player.check_bullet_hit(self.bullet_list_ennemy[i])
         new_bullet_list_player = []
         new_bullet_list_ennemy = []
         for i in range(len(self.bullet_list_player)):
@@ -102,7 +103,7 @@ class WeaponControl:
         self.weapon = self.inventory.hand[0]
         if self.weapon == None:
             return None
-        print(self.weapon.loaded)
+        #print(self.weapon.loaded)
         if inputo.reload:
             inputo.reload = 0
             if self.weapon.loaded < self.weapon.capacity and self.time_since_load > self.weapon.loadtime:
@@ -135,7 +136,7 @@ class PlayerCar:
         self.image = pyglet.image.load("img/van.png")
         self.image.anchor_x = self.image.width // 2
         self.image.anchor_y = self.image.height // 2
-        self.sprite = WorldSprite(batch=batch, img=self.image, x=(((self._SIZE_X)//2)), y=(((self._SIZE_Y)//2)))
+        self.sprite = WorldSprite(batch=batch, img=self.image, x=(((self._SIZE_X)//2)), y=(((self._SIZE_Y)//2)), z=-100)
         self.sprite.scale_x = 1/4
         self.sprite.scale_y = 1/4
         #self.sprite.scale = self._window_scale
@@ -259,13 +260,20 @@ class PlayerWalker:
         self._window_scale = scale
         self.pos_x = pos_x
         self.pos_y = pos_y
+        self.back_x = pos_x
+        self.back_y = pos_y
         self.speed_x = 0.0
         self.speed_y = 0.0
         self.x, self.y = int(pos_x), int(pos_y)
-        self.image = pyglet.image.load("img/mec.png")
+        self.image = pyglet.image.load("img/persoprinci.png")
+        self.m_image = pyglet.image.load("img/persoprinci_m.png")
         self.image.anchor_x = self.image.width // 2
         self.image.anchor_y = self.image.height // 2
         self.sprite = WorldSprite(batch=batch, img=self.image, x=(((self._SIZE_X)//2)), y=(((self._SIZE_Y)//2)))
+
+    def set_back(self, dir_x, dir_y):
+        self.back_x = self.pos_x - dir_x*32
+        self.back_y = self.pos_y - dir_y*32
     
     def deccelerate(self, delta_t):
         if self.speed_x > 0:
@@ -322,6 +330,8 @@ class PlayerWalker:
         self.pos_x += self.speed_x
         self.pos_y += self.speed_y
 
+        self.set_back(dir_x, dir_y)
+
         self.x, self.y = int(self.pos_x), int(self.pos_y)
     
     def update_sprite(self, cam_x, cam_y):
@@ -336,12 +346,19 @@ class Player:
         self.cam_x = int(pos_x) - (size_x//2)
         self.cam_y = int(pos_y) - (size_y//2)
         self.selection = 1
+        self.health = 100
+        self.death_time = 0
         self.playercar = PlayerCar(batch, pos_x, pos_y, size_x, size_y, scale)
         self.playerwalker = PlayerWalker(batch, pos_x, pos_y, size_x, size_y, scale)
         self.weaponcontrol = WeaponControl(pos_x, pos_y, inventory, batch)
         self.music_folder = "snd/radio-wc"
         self.mplayer = pyglet.media.Player()
-    
+
+    def check_bullet_hit(self, bullet):
+        if self.playerwalker.x < bullet.pos_x < self.playerwalker.x+32:
+            if self.playerwalker.y < bullet.pos_y < self.playerwalker.y+32:
+                self.health -= bullet.damage/4
+
     def radio(self):
         # Get a list of music files in the folder
         music_files = [f for f in os.listdir(self.music_folder) if f.endswith('.mp3') or f.endswith('.wav')]
@@ -363,6 +380,13 @@ class Player:
         self.mplayer.play()
 
     def update(self, inputo, delta_t):
+        print(self.health)
+        if self.health <= 0:
+            self.playerwalker.sprite.image = self.playerwalker.m_image
+            self.playerwalker.update_sprite(self.cam_x, self.cam_y)
+            self.playercar.update_sprite(self.cam_x, self.cam_y)
+            self.death_time += delta_t
+            return None
         if self.selection:
             if inputo.getin:
                 car_dir_x = self.playercar.pos_x - self.playerwalker.pos_x
@@ -373,7 +397,7 @@ class Player:
                     inputo.getin = 0
                     self.playercar.stop()
                     self.playerwalker.sprite.visible = False
-                    self.radio()
+                    #self.radio()
                 if car_dir_inten < 256:
                     car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*8*delta_t, (car_dir_y/car_dir_inten)*8*delta_t
                     self.playerwalker.update(inputo, delta_t, car_dir_x, car_dir_y)

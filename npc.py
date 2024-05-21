@@ -1,4 +1,5 @@
 import pyglet
+import random
 import numpy as np
 from worldsprite import WorldSprite
 from player import Bullet
@@ -6,8 +7,27 @@ from inventory import Weapon, WEAPON_MODELS
 import astar
 
 
-NPC_IMAGES = (pyglet.image.load("img/mec.png"),)
-NPC_CARS = (pyglet.image.load("img/van.png"),)
+NPC_IMAGES = [pyglet.image.load("img/npc0.png"), pyglet.image.load("img/npc1.png"), pyglet.image.load("img/npc2.png"), pyglet.image.load("img/npc3.png")]
+for image in NPC_IMAGES:
+    image.anchor_x = image.width // 2
+    image.anchor_y = image.height // 2
+NPC_IMAGES = tuple(NPC_IMAGES)
+
+NPC_MORT_IMAGES = [pyglet.image.load("img/npc0_m.png"), pyglet.image.load("img/npc1_m.png"), pyglet.image.load("img/npc2_m.png"), pyglet.image.load("img/npc3_m.png")]
+for image in NPC_MORT_IMAGES:
+    image.anchor_x = image.width // 2
+    image.anchor_y = image.height // 2
+NPC_MORT_IMAGES = tuple(NPC_MORT_IMAGES)
+
+VENDEUR_IMAGE = pyglet.image.load("img/vendeur.png")
+VENDEUR_IMAGE.anchor_x = VENDEUR_IMAGE.width // 2
+VENDEUR_IMAGE.anchor_y = VENDEUR_IMAGE.height // 2
+
+NPC_CARS = [pyglet.image.load("img/van.png"),]
+for image in NPC_CARS:
+    image.anchor_x = image.width // 2
+    image.anchor_y = image.height // 2
+NPC_CARS = tuple(NPC_CARS)
 
 
 class NpcWalker:
@@ -15,7 +35,8 @@ class NpcWalker:
         self.x = x
         self.y = y
         self.npctype = npctype
-        self.sprite = WorldSprite(batch=batch, img=NPC_IMAGES[0], x=0, y=0)
+        self.chosen_image = random.randint(0, 3)
+        self.sprite = WorldSprite(batch=batch, img=NPC_IMAGES[self.chosen_image], x=0, y=0)
         self.objective = self.get_objective() # INTEGRER COORDONNÉES D'UNE VILLE SUR LA MAP
         self.stress = 0
         self.speed_objective = 90
@@ -24,6 +45,7 @@ class NpcWalker:
         self.incar = incar
         self.last_shot = 0
         self.time_since_load = 0
+        self.dead = False
         self.batch = batch
 
     def get_objective(self):
@@ -90,6 +112,7 @@ class NpcWalker:
         return mov_x, mov_y
 
     def update_sprite(self, cam_x, cam_y):
+        self.sprite.rotation = np.degrees(np.arctan2(self.mov_y, self.mov_x)*(-1) + (np.pi/2))
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
     
     def get_distance_to_player(self, player_x, player_y):
@@ -120,6 +143,10 @@ class NpcWalker:
         return None
 
     def update(self, player_x, player_y, cam_x, cam_y, obstacle_map, delta_t):
+        if self.health <= 0:
+            self.sprite.image = NPC_MORT_IMAGES[self.chosen_image]
+            self.update_sprite(cam_x, cam_y)
+            return None
         match(self.npctype):
             case 0:
                 self.mov_x, self.mov_y = self.get_mov_to_point(self.objective[0], self.objective[1], obstacle_map, cam_x, cam_y, delta_t)
@@ -165,7 +192,7 @@ class NpcManager:
         self.npcs = [NpcWalker(0, 0, 100, 2, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
         self.npcs_cars = []
     
-    def update(self, bullet_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
+    def update(self, bullet_manager, item_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
         new_npcs = []
         for npc in self.npcs:
             grid_x, grid_y = npc.pixel_to_grid_cos(npc.x, npc.y, cam_x, cam_y)
@@ -174,8 +201,9 @@ class NpcManager:
             new_npcs.append(npc)
             for bullet in bullet_list_player:
                 npc.check_bullet_hit(bullet)
-            for bullet in bullet_list_ennemy:
-                npc.check_bullet_hit(bullet)
+                if npc.health <= 0 and not npc.dead:
+                    npc.dead = True
+                    item_manager.add_item(npc.weapon, npc.x, npc.y)
             bullet = npc.update(player_x, player_y, cam_x, cam_y, obstacle_map, delta_t)
             if bullet != None:
                 bullet_manager.add_bullet(bullet, False)

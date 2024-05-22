@@ -1,3 +1,7 @@
+"""
+Gestion du joueur
+"""
+
 import pyglet
 import random as r
 import numpy as np
@@ -14,17 +18,62 @@ BACK_SPEED_L = 2
 
 
 class BulletManager:
+    """
+    Gère les balles tirées par les joueurs et les ennemis.
+    """
+
     def __init__(self):
+        """
+        Initialise les listes de balles pour le joueur et les ennemis.
+
+        Returns
+        -------
+        None.
+        """
         self.bullet_list_player = []
         self.bullet_list_ennemy = []
 
     def add_bullet(self, bullet, btype):
+        """
+        Ajoute une balle à la liste correspondante.
+
+        Parameters
+        ----------
+        bullet : Bullet
+            Instance de la balle à ajouter.
+        btype : bool
+            Type de la balle (True pour joueur, False pour ennemi).
+
+        Returns
+        -------
+        None.
+        """
         if btype:
             self.bullet_list_player.append(bullet)
         else:
             self.bullet_list_ennemy.append(bullet)
 
     def update(self, delta_t, player, obstacles, cam_x, cam_y):
+        """
+        Met à jour les balles en jeu.
+
+        Parameters
+        ----------
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+        player : Player
+            Instance du joueur.
+        obstacles : dict
+            Dictionnaire contenant les obstacles.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         bullet_player_to_remove = []
         bullet_ennemy_to_remove = []
         for i in range(len(self.bullet_list_player)):
@@ -47,7 +96,36 @@ class BulletManager:
 
 
 class Bullet:
+    """
+    Représente une balle tirée par le joueur.
+    """
     def __init__(self, pos_x, pos_y, dir_x, dir_y, reach, damage, accuracy, batch):
+        """
+        Initialise une instance de balle.
+
+        Parameters
+        ----------
+        pos_x : float
+            Position x initiale de la balle.
+        pos_y : float
+            Position y initiale de la balle.
+        dir_x : float
+            Direction x de la balle.
+        dir_y : float
+            Direction y de la balle.
+        reach : float
+            Portée de la balle.
+        damage : int
+            Dommage infligé par la balle.
+        accuracy : float
+            Précision de la balle.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.og_x = pos_x
@@ -64,11 +142,43 @@ class Bullet:
         self.damage = damage
 
     def find_x1_y1(self, dt):
+        """
+        Calcule la position de départ de la ligne représentant la balle.
+
+        Parameters
+        ----------
+        dt : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        tuple
+            Coordonnées (x, y) de la position de départ de la ligne.
+        """
         if self.alive_time < 0.1:
             return self.og_x, self.og_y
         return self.og_x + self.dir_x*(self.alive_time-0.1)*1860, self.og_y + self.dir_y*(self.alive_time-0.1)*1860
 
     def update(self, dt, obstacles, cam_x, cam_y):
+        """
+        Met à jour la position de la balle.
+
+        Parameters
+        ----------
+        dt : float
+            Temps écoulé depuis la dernière mise à jour.
+        obstacles : dict
+            Dictionnaire contenant les obstacles.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        bool
+            True si la balle doit être détruite, False sinon.
+        """
         self.alive_time += dt
         self.pos_x += self.dir_x*dt*1860
         self.pos_y += self.dir_y*dt*1860
@@ -87,7 +197,28 @@ class Bullet:
 
 
 class WeaponControl:
+    """
+    Classe pour gérer le contrôle des armes du joueur.
+    """
     def __init__(self, pos_x, pos_y, inventory, batch):
+        """
+        Initialise le contrôle des armes.
+
+        Parameters
+        ----------
+        pos_x : float
+            Position x du joueur.
+        pos_y : float
+            Position y du joueur.
+        inventory : Inventory
+            Inventaire du joueur.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.inventory = inventory
@@ -99,6 +230,29 @@ class WeaponControl:
         self.reload_sound = pyglet.media.load("snd/reload.mp3", streaming=False)
 
     def update(self, pos_x, pos_y, dir_x, dir_y, inputo, dt):
+        """
+        Met à jour le contrôle des armes.
+
+        Parameters
+        ----------
+        pos_x : float
+            Position x du joueur.
+        pos_y : float
+            Position y du joueur.
+        dir_x : float
+            Direction x de la visée.
+        dir_y : float
+            Direction y de la visée.
+        inputo : Input
+            Entrées du joueur.
+        dt : float
+            Intervalle de temps depuis la dernière mise à jour.
+
+        Returns
+        -------
+        Bullet or None
+            Une balle tirée ou None si aucune balle n'a été tirée.
+        """
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.dir_x = dir_x
@@ -128,7 +282,32 @@ class WeaponControl:
 
 
 class PlayerCar:
+    """
+    Classe pour représenter la voiture contrôlée par le joueur.
+    """
     def __init__(self, batch, pos_x, pos_y, size_x, size_y, scale):
+        """
+        Initialise la voiture du joueur.
+
+        Parameters
+        ----------
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+        pos_x : float
+            Position x initiale de la voiture.
+        pos_y : float
+            Position y initiale de la voiture.
+        size_x : int
+            Largeur de l'écran.
+        size_y : int
+            Hauteur de l'écran.
+        scale : float
+            Échelle de l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self._window_scale = scale
@@ -154,6 +333,18 @@ class PlayerCar:
         self.engine_player.play()
 
     def hbrake_func(self, x):
+        """
+        Fonction pour le frein à main.
+
+        Parameters
+        ----------
+        x : float
+            Intensité de la vitesse.
+
+        Returns
+        -------
+        float.
+        """
         if x <= 0:
             return 0
         if x < 0.755:
@@ -161,6 +352,20 @@ class PlayerCar:
         return 4/(x+1)
 
     def rotate(self, inputo, delta_t):
+        """
+        Fait tourner la voiture en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+
+        Returns
+        -------
+        None.
+        """
         rotate_intensity = (inputo.le - inputo.rg)*delta_t*self.hbrake_func(self.speed_intensity)
         angle = SENSI*rotate_intensity
         self.dir_x = np.cos(angle)*self.dir_x - np.sin(angle)*self.dir_y
@@ -173,6 +378,23 @@ class PlayerCar:
             self.speed_y = np.sin(angle)*self.speed_x + np.cos(angle)*self.speed_y
 
     def deccel_vec(self, speed_x, speed_y, inten):
+        """
+        Calcule le vecteur de décélération.
+
+        Parameters
+        ----------
+        speed_x : float
+            Vitesse en x.
+        speed_y : float
+            Vitesse en y.
+        inten : float
+            Intensité de décélération.
+
+        Returns
+        -------
+        tuple
+            Le vecteur de décélération en x et en y.
+        """
         deccel_x = speed_x
         deccel_y = speed_y
         deccel_inten = np.sqrt(deccel_x**2 + deccel_y**2)
@@ -183,6 +405,20 @@ class PlayerCar:
         return deccel_x*inten*DECCEL_ADD, deccel_y*inten*DECCEL_ADD
 
     def decceletate(self, inputo, delta_t):
+        """
+        Applique la décélération à la voiture.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+
+        Returns
+        -------
+        None.
+        """
         brake_ammount = 0
         if inputo.dw:
             brake_ammount = 0.5
@@ -207,6 +443,18 @@ class PlayerCar:
                 self.speed_y = 0
 
     def limit_speed(self, inputo):
+        """
+        Limite la vitesse de la voiture.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+
+        Returns
+        -------
+        None.
+        """
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
         speed_to_change = None
         if self.speed_intensity > FRONT_SPEED_L and inputo.up == 1:
@@ -223,6 +471,26 @@ class PlayerCar:
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
 
     def accelerate(self, inputo, delta_t, obstacles, cam_x, cam_y):
+        """
+        Accélère la voiture en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+        obstacles : dict
+            Dictionnaire des obstacles.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.decceletate(inputo, delta_t)
         accel_intensity = (inputo.up - inputo.dw*0.5)*delta_t*SPEED_ADD*(-1)
         self.speed_intensity = np.sqrt(self.speed_x**2 + self.speed_y**2)
@@ -263,22 +531,88 @@ class PlayerCar:
     """
 
     def stop(self):
+        """
+        Arrête la voiture.
+
+        Returns
+        -------
+        None.
+        """
         self.speed_x = 0
         self.speed_y = 0
         self.speed_intensity = 0
 
     def update(self, inputo, delta_t, obstacles, cam_x, cam_y):
+        """
+        Met à jour la voiture en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+        obstacles : dict
+            Dictionnaire des obstacles.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.rotate(inputo, delta_t)
         self.accelerate(inputo, delta_t, obstacles, cam_x, cam_y)
         self.sprite.rotation = np.degrees(np.arctan2(self.dir_y, self.dir_x)*(-1) + (np.pi/2) + np.pi)
         self.x, self.y = int(self.pos_x), int(self.pos_y)
 
     def update_sprite(self, cam_x, cam_y):
+        """
+        Met à jour le sprite de la voiture en fonction de la caméra.
+
+        Parameters
+        ----------
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
 
 
 class PlayerWalker:
+    """
+    Classe pour représenter le joueur à pied.
+    """
     def __init__(self, batch, pos_x, pos_y, size_x, size_y, scale):
+        """
+        Initialise le joueur à pied.
+
+        Parameters
+        ----------
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+        pos_x : float
+            Position x initiale du joueur à pied.
+        pos_y : float
+            Position y initiale du joueur à pied.
+        size_x : int
+            Largeur de l'écran.
+        size_y : int
+            Hauteur de l'écran.
+        scale : float
+            Échelle de l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self._window_scale = scale
@@ -301,10 +635,36 @@ class PlayerWalker:
         self.is_walking = False
 
     def set_back(self, dir_x, dir_y):
+        """
+        Définit la position du joueur lorsqu'il recule.
+
+        Parameters
+        ----------
+        dir_x : float
+            Direction x.
+        dir_y : float
+            Direction y.
+
+        Returns
+        -------
+        None.
+        """
         self.back_x = self.pos_x - dir_x*32
         self.back_y = self.pos_y - dir_y*32
     
     def deccelerate(self, delta_t):
+        """
+        Applique la décélération au joueur.
+
+        Parameters
+        ----------
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+
+        Returns
+        -------
+        None.
+        """
         if self.speed_x > 0:
             self.speed_x -= 8*delta_t
             if self.speed_x < 0:
@@ -323,10 +683,41 @@ class PlayerWalker:
                 self.speed_y = 0
 
     def stop(self):
+        """
+        Arrête le joueur.
+
+        Returns
+        -------
+        None.
+        """
         self.speed_x = 0
         self.speed_y = 0
 
     def update(self, inputo, delta_t, obstacles, cam_x, cam_y, acc_x_ow=None, acc_y_ow=None): # Attention multiplier acc_ow avec delta_t à l'avance
+        """
+        Met à jour le joueur en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+        obstacles : dict
+            Dictionnaire des obstacles.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+        acc_x_ow : float, optional
+            Accélération x externe. The default is None.
+        acc_y_ow : float, optional
+            Accélération y externe. The default is None.
+
+        Returns
+        -------
+        None.
+        """
         dir_x = inputo.mx - ((self._SIZE_X*self._window_scale)//2)
         dir_y = inputo.my - ((self._SIZE_Y*self._window_scale)//2)
         dir_inten = np.sqrt(dir_x**2 + dir_y**2)
@@ -381,11 +772,52 @@ class PlayerWalker:
         self.x, self.y = int(self.pos_x), int(self.pos_y)
     
     def update_sprite(self, cam_x, cam_y):
+        """
+        Met à jour le sprite du joueur en fonction de la caméra.
+
+        Parameters
+        ----------
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
 
 
 class Player:
+    """
+    Classe pour représenter le joueur.
+    """
     def __init__(self, batch, pos_x, pos_y, size_x, size_y, scale, inventory):
+        """
+        Initialise le joueur.
+
+        Parameters
+        ----------
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+        pos_x : float
+            Position x initiale du joueur.
+        pos_y : float
+            Position y initiale du joueur.
+        size_x : int
+            Largeur de l'écran.
+        size_y : int
+            Hauteur de l'écran.
+        scale : float
+            Échelle de l'affichage.
+        inventory : Inventory
+            Inventaire du joueur.
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self._window_scale = scale
@@ -403,31 +835,76 @@ class Player:
         self.mplayer = pyglet.media.Player()
 
     def check_bullet_hit(self, bullet):
+        """
+        Vérifie si une balle a touché le joueur.
+
+        Parameters
+        ----------
+        bullet : Bullet
+            Balle à vérifier.
+
+        Returns
+        -------
+        None.
+        """
         if self.playerwalker.x < bullet.pos_x < self.playerwalker.x+32:
             if self.playerwalker.y < bullet.pos_y < self.playerwalker.y+32:
                 self.health -= bullet.damage/4
 
     def radio(self):
-        # Get a list of music files in the folder
+        """
+        Active la radio du van.
+
+        Returns
+        -------
+        None.
+        """
         music_files = [f for f in os.listdir(self.music_folder) if f.endswith('.mp3') or f.endswith('.wav')]
         if not music_files:
             print("No music files found in the folder.")
             return
 
-        # Load music into the player
         playlist = [os.path.join(self.music_folder, f) for f in music_files]
-
-        # Shuffle the playlist
         r.shuffle(playlist)
-
-        # Add the music to the player's queue
         for music_file in playlist:
             self.mplayer.queue(pyglet.media.load(music_file))
-
-        # Start playing
         self.mplayer.play()
 
+    def heal(self, ammount):
+        """
+        Soigne le joueur.
+
+        Parameters
+        ----------
+        ammount: int
+            Nombre de points de vie à donner à notre batard de joueur.
+        
+        Returns
+        -------
+        Que dalle.
+        """
+        self.health += ammount
+        if self.health > 100:
+            self.health = 100
+
     def update(self, inputo, delta_t, obstacles):
+        """
+        Met à jour le joueur en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        delta_t : float
+            Intervalle de temps depuis la dernière mise à jour.
+        obstacles : dict
+            Dictionnaire des obstacles.
+
+        Returns
+        -------
+        WeaponControl.update() output
+            Renvoie la sortie de la méthode update de WeaponControl.
+        """
         if self.health <= 0:
             if not self.death_played:
                 self.death = pyglet.media.load('snd/death.mp3')

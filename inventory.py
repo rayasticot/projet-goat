@@ -1,3 +1,7 @@
+"""
+Module contenant des classes et des fonctions pour gérer l'inventaire et les objets du jeu.
+"""
+
 import pyglet
 import numpy as np
 from dataclasses import dataclass
@@ -24,8 +28,38 @@ BULLET_IMAGE = {
 }
 
 
-class Item:    
+class Item:
+    """
+    Classe représentant un objet dans l'inventaire
+    """
     def __init__(self, iteminfo, itype, image_index, name, desc, weight):
+        """
+        Initialise un objet avec les informations fournies.
+        
+        Parameters
+        ----------
+        iteminfo : dict, optional
+            Informations sur l'objet.
+            Le format doit inclure les clés "itype" (type d'objet), 
+            "image" (index de l'image), "name" (nom), "desc" (description)
+            et "weight" (poids). Par défaut, None.
+        itype : int
+            Type d'objet.
+        image_index : int
+            Index de l'image de l'objet.
+        name : str
+            Nom de l'objet.
+        desc : str
+            Description de l'objet.
+        weight : int
+            Poids de l'objet.
+
+        Returns
+        -------
+        None
+
+        """
+
         if not iteminfo:
             self.itype = itype
             self.sprite = WorldSprite(img=ITEM_IMAGES[image_index])
@@ -41,7 +75,23 @@ class Item:
 
 
 class WeaponModel:
+    """
+    Classe représentant un modèle d'arme.
+    """
     def __init__(self, modelinfo):
+        """
+        Initialise un modèle d'arme avec les informations fournies.
+
+        Parameters
+        ----------
+        modelinfo : dict
+            Informations sur le modèle de l'arme.
+
+        Returns
+        -------
+        None
+
+        """
         self.image_index = modelinfo["image"]
         self.name = modelinfo["name"]
         self.desc = modelinfo["desc"]
@@ -56,8 +106,34 @@ class WeaponModel:
         self.price = modelinfo["price"]
 
 
-class Weapon(Item):    
+class Weapon(Item):
+    """
+    Classe représentant une arme.
+    """
     def __init__(self, model, loaded, rate_dmg, reach_dmg, accuracy_dmg, damage_dmg):
+        """
+        Initialise une arme avec les informations fournies.
+
+        Parameters
+        ----------
+        model : WeaponModel
+            Modèle de l'arme.
+        loaded : bool
+            Charge de l'arme.
+        rate_dmg : float
+            Dégâts de taux.
+        reach_dmg : float
+            Dégâts de portée.
+        accuracy_dmg : float
+            Dégâts de précision.
+        damage_dmg : float
+            Dégâts sur les dégâts.
+
+        Returns
+        -------
+        None
+    
+        """
         super().__init__(None, 0, model.image_index, model.name, model.desc, model.weight)
         self.capacity = model.capacity
         self.loadtime = model.loadtime
@@ -71,7 +147,26 @@ class Weapon(Item):
 
 
 class BulletBox(Item):
+    """
+    Classe représentant une boîte de munitions.
+
+    """
     def __init__(self, btype, ammount):
+        """
+        Initialise une boîte de munitions avec les informations fournies.
+
+        Parameters
+        ----------
+        btype : str
+            Type de munitions.
+        ammount : int
+            Quantité de munitions.
+
+        Returns
+        -------
+        None
+
+        """
         super().__init__(None, 4, BULLET_IMAGE[btype], btype, "", 0)
         self.btype = btype
         self.ammount = ammount
@@ -79,6 +174,20 @@ class BulletBox(Item):
 
 
 def load_weapons_models(filename):
+    """
+    Charge les modèles d'armes à partir d'un fichier JSON.
+
+    Parameters
+    ----------
+    filename : str
+        Nom du fichier JSON contenant les modèles d'armes.
+
+    Returns
+    -------
+    tuple
+        Tuple des modèles d'armes.
+
+    """
     models = []
     with open(filename, "r") as file:
         data = json.load(file)
@@ -91,7 +200,44 @@ WEAPON_MODELS = load_weapons_models("item/weapon_models.json")
 
 
 class GridItem(pyglet.gui.WidgetBase):
+    """
+    Classe pour représenter un élément de grille d'objets.
+
+    """
     def __init__(self, x, y, empty, empty_t, filled, filled_t, inventory, item_index, i_type, batch, group=None):
+        """
+        Initialise un élément de grille.
+
+        Parameters
+        ----------
+        x : int
+            Position x de l'élément de grille.
+        y : int
+            Position y de l'élément de grille.
+        empty : pyglet.image.AbstractImage
+            Image de l'élément vide.
+        empty_t : pyglet.image.AbstractImage
+            Image de l'élément vide en surbrillance.
+        filled : pyglet.image.AbstractImage
+            Image de l'élément rempli.
+        filled_t : pyglet.image.AbstractImage
+            Image de l'élément rempli en surbrillance.
+        inventory : Inventory
+            Instance de l'inventaire auquel appartient cet élément de grille.
+        item_index : int
+            Index de l'élément dans l'inventaire.
+        i_type : int
+            Type de l'élément.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+        group : pyglet.graphics.Group, optional
+            Groupe de rendu auquel cet élément appartient. Le default est None.
+
+        Returns
+        -------
+        None.
+
+        """
         super().__init__(x, y, empty.width, empty.height)
         self._empty = empty
         self._empty_t = empty_t
@@ -108,17 +254,76 @@ class GridItem(pyglet.gui.WidgetBase):
         self.presence = False
 
     def mouse_press(self, x, y, buttons, modifiers):
+        """
+        Méthode appelée lorsqu'un clic de souris est effectué.
+
+        Parameters
+        ----------
+        x : int
+            Position x du clic.
+        y : int
+            Position y du clic.
+        buttons : int
+            Boutons de souris pressés.
+        modifiers : int
+            Modificateurs de souris pressés.
+
+        Returns
+        -------
+        bool
+            Vrai si l'élément a été pressé avec succès, Faux sinon.
+
+        """
         if not self._enabled or not self._check_hit(x, y):
             return
         self._inventory.item_pressed(self.item_index, self.i_type)
 
     def mouse_release(self, x, y, buttons, modifiers):
+        """
+        Méthode appelée lorsqu'un clic de souris est relâché.
+
+        Parameters
+        ----------
+        x : int
+            Position x du relâchement du clic.
+        y : int
+            Position y du relâchement du clic.
+        buttons : int
+            Boutons de souris relâchés.
+        modifiers : int
+            Modificateurs de souris relâchés.
+
+        Returns
+        -------
+        bool
+            Vrai si l'élément a été relâché avec succès, Faux sinon.
+
+        """
         if not self._enabled or not self._check_hit(x, y):
             return False
         self._inventory.item_released(self.item_index, self.i_type)
         return True
 
     def mouse_motion(self, x, y, dx, dy):
+        """
+        Méthode appelée lorsqu'un mouvement de souris est détecté.
+
+        Parameters
+        ----------
+        x : int
+            Position x actuelle du curseur de la souris.
+        y : int
+            Position y actuelle du curseur de la souris.
+        dx : int
+            Déplacement en x du curseur de la souris.
+        dy : int
+            Déplacement en y du curseur de la souris.
+
+        Returns
+        -------
+        None.
+
+        """
         if self._check_hit(x, y):
             if self.presence:
                 self._sprite.image = self._filled
@@ -131,6 +336,26 @@ class GridItem(pyglet.gui.WidgetBase):
                 self._sprite.image = self._empty_t
 
     def update(self, inputo, scale, press, release):
+        """
+        Met à jour l'élément de grille.
+
+        Parameters
+        ----------
+        inputo : InputObject
+            Objet d'entrée contenant les informations sur l'entrée utilisateur.
+        scale : float
+            Échelle de l'affichage.
+        press : bool
+            Indique si un clic de souris a été pressé.
+        release : bool
+            Indique si un clic de souris a été relâché.
+
+        Returns
+        -------
+        bool
+            Vrai si un élément a été relâché avec succès, Faux sinon.
+
+        """
         self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
         if press:
             self.mouse_press(inputo.mx//scale, inputo.my//scale, None, None)
@@ -139,12 +364,52 @@ class GridItem(pyglet.gui.WidgetBase):
         return False
     
     def enable(self, value):
+        """
+        Active ou désactive l'élément de grille.
+
+        Parameters
+        ----------
+        value : bool
+            Valeur d'activation de l'élément.
+
+        Returns
+        -------
+        None.
+
+        """
         self._enabled = value
         self._sprite.visible = value
 
 
 class ArrowButton(pyglet.gui.WidgetBase):
+    """
+    Classe pour représenter un bouton fléché.
+
+    """
     def __init__(self, x, y, image, image_t, batch, group=None):
+        """
+        Initialise un bouton fléché.
+
+        Parameters
+        ----------
+        x : int
+            Position x du bouton.
+        y : int
+            Position y du bouton.
+        image : pyglet.image.AbstractImage
+            Image du bouton.
+        image_t : pyglet.image.AbstractImage
+            Image du bouton en surbrillance.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+        group : pyglet.graphics.Group, optional
+            Groupe de rendu auquel cet élément appartient. Le default est None.
+
+        Returns
+        -------
+        None.
+
+        """
         super().__init__(x, y, image.width, image.height)
         self.image = image
         self.image_t = image_t
@@ -155,17 +420,72 @@ class ArrowButton(pyglet.gui.WidgetBase):
         self.enabled = True
 
     def mouse_press(self, x, y, buttons, modifiers):
+        """
+        Méthode appelée lorsqu'un clic de souris est pressé.
+
+        Parameters
+        ----------
+        x : int
+            Position x du clic.
+        y : int
+            Position y du clic.
+        buttons : int
+            Boutons de souris pressés.
+        modifiers : int
+            Modificateurs de souris pressés.
+
+        Returns
+        -------
+        bool
+            Vrai si le bouton a été pressé avec succès, Faux sinon.
+
+        """
         if not self.enabled or not self._check_hit(x, y):
             return False
         return True
 
     def mouse_motion(self, x, y, dx, dy):
+        """
+        Méthode appelée lorsqu'un mouvement de souris est détecté.
+
+        Parameters
+        ----------
+        x : int
+            Position x actuelle du curseur de la souris.
+        y : int
+            Position y actuelle du curseur de la souris.
+        dx : int
+            Déplacement en x du curseur de la souris.
+        dy : int
+            Déplacement en y du curseur de la souris.
+
+        Returns
+        -------
+        None.
+
+        """
         if self._check_hit(x, y):
             self._sprite.image = self.image
         else:
             self._sprite.image = self.image_t
 
     def update(self, inputo, scale):
+        """
+        Met à jour le bouton fléché.
+
+        Parameters
+        ----------
+        inputo : InputObject
+            Objet d'entrée contenant les informations sur l'entrée utilisateur.
+        scale : float
+            Échelle de l'affichage.
+
+        Returns
+        -------
+        bool
+            Vrai si le bouton a été pressé avec succès, Faux sinon.
+
+        """
         self.mouse_motion(inputo.mx//scale, inputo.my//scale, 0, 0)
         if inputo.lclick:
             if self.mouse_press(inputo.mx//scale, inputo.my//scale, 0, 0):
@@ -175,7 +495,26 @@ class ArrowButton(pyglet.gui.WidgetBase):
 
 
 class Inventory:
+    """
+    Classe pour gérer l'inventaire du joueur.
+    """
     def __init__(self, size_x, size_y, item_manager):
+        """
+        Initialise l'inventaire du joueur.
+
+        Parameters
+        ----------
+        size_x : int
+            Largeur de la fenêtre.
+        size_y : int
+            Hauteur de la fenêtre.
+        item_manager : ItemManager
+            Gestionnaire d'objets.
+
+        Returns
+        -------
+        None.
+        """
         self.batch = pyglet.graphics.Batch()
 
         self.arms = [None]*3
@@ -183,7 +522,7 @@ class Inventory:
         self.cons = [None]*16
         self.keys = [None]*16
         self.bullets = {
-            "9mm": 100,
+            "9mm": 300,
             "7.62mm": 100,
             "20mm": 100
         }
@@ -234,10 +573,31 @@ class Inventory:
         self.create_widgets()
 
     def switch_page(self, ammount):
+        """
+        Change la page de l'inventaire.
+
+        Parameters
+        ----------
+        ammount : int
+            Quantité à ajouter ou soustraire à la page actuelle.
+
+        Returns
+        -------
+        None.
+        """
+
         self.page += ammount
         self.page %= 5
 
     def create_widgets(self):
+        """
+        Crée les widgets de l'inventaire.
+
+        Returns
+        -------
+        None.
+        """
+
         center_x = self._SIZE_X/2
         center_y = self._SIZE_Y/2
         self.ARMS_BE_X = center_x - 32*len(self.widget_arms)
@@ -280,6 +640,20 @@ class Inventory:
 
 
     def find_free(self, inv):
+        """
+        Trouve le premier emplacement vide dans l'inventaire.
+
+        Parameters
+        ----------
+        inv : list
+            Liste représentant une catégorie d'objets dans l'inventaire.
+
+        Returns
+        -------
+        int or None
+            Index de l'emplacement vide trouvé, ou None s'il n'y a pas d'emplacement vide.
+        """
+
         for i, item in enumerate(inv):
             if item == None:
                 return i
@@ -287,6 +661,20 @@ class Inventory:
 
 
     def list_from_type(self, i_type):
+        """
+        Renvoie la liste correspondant au type d'objet spécifié.
+
+        Parameters
+        ----------
+        i_type : int
+            Type d'objet (0: armes, 1: équipement, 2: objets de consommation, 3: clés, 5: objets tenus en main).
+
+        Returns
+        -------
+        list
+            Liste correspondant au type d'objet spécifié.
+        """
+
         match i_type:
             case 0:
                 return self.arms
@@ -301,6 +689,19 @@ class Inventory:
 
 
     def pickup(self, item) -> bool: # Vrai si ramassé sans problème, Faux si pas ramassé
+        """
+        Ramasse un objet et l'ajoute à l'inventaire.
+
+        Parameters
+        ----------
+        item : Item
+            Objet à ramasser.
+
+        Returns
+        -------
+        bool
+            True si l'objet a été ramassé avec succès, False sinon.
+        """
         if 0 <= item.itype <= 3:
             item_inv = None
             match item.itype:
@@ -320,12 +721,33 @@ class Inventory:
             return True
         if item.itype == 4:
             self.bullets[item.btype] += item.ammount
-            item_inv[free].sprite.batch = self.batch
+            #item_inv[free].sprite.batch = self.batch
             return True
         return False
 
 
     def throwaway(self, inv, index, manager, x, y):
+        """
+        Jette un objet de l'inventaire sur le sol.
+
+        Parameters
+        ----------
+        inv : list
+            Liste représentant une catégorie d'objets dans l'inventaire.
+        index : int
+            Index de l'objet à jeter.
+        manager : ItemManager
+            Gestionnaire d'objets au sol.
+        x : int
+            Position x où jeter l'objet.
+        y : int
+            Position y où jeter l'objet.
+
+        Returns
+        -------
+        None.
+        """
+
         if inv[index] == None:
             return None
         item = inv[index]
@@ -334,13 +756,51 @@ class Inventory:
 
 
     def finalswitch(self, inv1, index1, inv2, index2):
+        """
+        Échange deux objets entre deux catégories d'objets de l'inventaire.
+
+        Parameters
+        ----------
+        inv1 : list
+            Liste représentant une catégorie d'objets dans l'inventaire.
+        index1 : int
+            Index de l'objet dans la première liste.
+        inv2 : list
+            Liste représentant une autre catégorie d'objets dans l'inventaire.
+        index2 : int
+            Index de l'objet dans la deuxième liste.
+
+        Returns
+        -------
+        None.
+        """
+
         item1 = inv1[index1]
         item2 = inv2[index2]
         inv1[index1] = item2
         inv2[index2] = item1
 
 
-    def switchup(self, inv1, index1, inv2, index2): # Fonction moche et j'en ai rien à foutre
+    def switchup(self, inv1, index1, inv2, index2):
+        """
+        Échange deux objets entre deux catégories d'objets de l'inventaire.
+
+        Parameters
+        ----------
+        inv1 : list
+            Liste représentant une catégorie d'objets dans l'inventaire.
+        index1 : int
+            Index de l'objet dans la première liste.
+        inv2 : list
+            Liste représentant une autre catégorie d'objets dans l'inventaire.
+        index2 : int
+            Index de l'objet dans la deuxième liste.
+
+        Returns
+        -------
+        None.
+        """
+
         if inv1 != inv2:
             if inv1 == self.hand:
                 match inv2:
@@ -379,6 +839,22 @@ class Inventory:
 
 
     def take_bullets(self, btype, ammount):
+        """
+        Prend des munitions de l'inventaire.
+
+        Parameters
+        ----------
+        btype : str
+            Type de munitions.
+        ammount : int
+            Quantité de munitions à prendre.
+
+        Returns
+        -------
+        int
+            La quantité de munitions effectivement prises.
+        """
+
         if self.bullets[btype] >= ammount:
             self.bullets[btype] -= ammount
             return ammount
@@ -388,6 +864,21 @@ class Inventory:
 
 
     def item_pressed(self, index, i_type):
+        """
+        Indique qu'un objet a été appuyé.
+
+        Parameters
+        ----------
+        index : int
+            Index de l'objet.
+        i_type : int
+            Type de l'objet.
+
+        Returns
+        -------
+        None.
+        """
+
         self.released_item_index = None
         self.released_item_type = None
         self.pressed_item_index = index
@@ -395,11 +886,41 @@ class Inventory:
 
 
     def item_released(self, index, i_type):
+        """
+        Indique qu'un objet a été relâché.
+
+        Parameters
+        ----------
+        index : int
+            Index de l'objet.
+        i_type : int
+            Type de l'objet.
+
+        Returns
+        -------
+        None.
+        """
+
         if self.pressed_item_index != None and self.pressed_item_type != None:
             self.switchup(self.list_from_type(self.pressed_item_type), self.pressed_item_index, self.list_from_type(i_type), index)
 
 
     def place_items(self, inputo, scale):
+        """
+        Place les objets dans l'inventaire en fonction de la page actuelle.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        scale : float
+            Échelle d'affichage.
+
+        Returns
+        -------
+        None.
+        """
+
         e_arms, e_equi, e_cons, e_keys, e_bull = False, False, False, False, False
         match self.page:
             case 0:
@@ -470,6 +991,25 @@ class Inventory:
 
 
     def update(self, inputo, scale, player_back_x, player_back_y):
+        """
+        Met à jour l'inventaire en fonction des entrées du joueur.
+
+        Parameters
+        ----------
+        inputo : Input
+            Entrées du joueur.
+        scale : float
+            Échelle d'affichage.
+        player_back_x : int
+            Position x du joueur.
+        player_back_y : int
+            Position y du joueur.
+
+        Returns
+        -------
+        None.
+        """
+
         press, release = 0, 0
         if self.last_lclick != inputo.lclick:
             if inputo.lclick:
@@ -564,14 +1104,51 @@ class Inventory:
 
 
 class GroundItem:
+    """
+    Classe pour représenter un objet dans le monde.
+    """
+
     def __init__(self, item, pos_x, pos_y):
+        """
+        Initialise un objet dans le monde.
+
+        Parameters
+        ----------
+        item : Item
+            Objet dans le monde.
+        pos_x : int
+            Position x de l'objet dans le monde.
+        pos_y : int
+            Position y de l'objet dans le monde.
+
+        Returns
+        -------
+        None.
+        """
+
         self.item = item
         self.pos_x = pos_x
         self.pos_y = pos_y
 
 
 class GroundItemManager:
+    """
+    Classe pour gérer les objets dans le monde.
+    """
     def __init__(self, batch):
+        """
+        Initialise le gestionnaire des objets dans le monde.
+
+        Parameters
+        ----------
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage des objets.
+
+        Returns
+        -------
+        None.
+        """
+
         self.batch = batch
         self.groud_item_list = []#[GroundItem(Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), 100*256, -300*256)]
         #self.groud_item_list[0].item.sprite.batch = self.batch
@@ -579,22 +1156,96 @@ class GroundItemManager:
         self.pickup_player = pyglet.media.Player()
 
     def add_item(self, item, x, y):
+        """
+        Ajoute un objet dans le monde.
+
+        Parameters
+        ----------
+        item : objet
+            L'objet à ajouter.
+        x : int
+            Position x de l'objet.
+        y : int
+            Position y de l'objet.
+
+        Returns
+        -------
+        None.
+        """
+
         if item == None:
             return
         self.groud_item_list.append(GroundItem(item, x, y))
         self.groud_item_list[-1].item.sprite.batch = self.batch
 
     def grid_cos_to_pixel(self, grid_x, grid_y, cam_x, cam_y):
+        """
+        Convertit les coordonnées de la grille en coordonnées de pixels.
+
+        Parameters
+        ----------
+        grid_x : int
+            Position x dans la grille.
+        grid_y : int
+            Position y dans la grille.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        tuple
+            La position convertie en pixels (x, y).
+        """
+
         return (256*grid_x) + cam_x - (14*256), (256*grid_y) + cam_y - (15*256)
 
     def pixel_to_grid_cos(self, x, y, cam_x, cam_y):
+        """
+        Convertit les coordonnées de pixels en coordonnées de la grille.
+
+        Parameters
+        ----------
+        x : int
+            Position x en pixels.
+        y : int
+            Position y en pixels.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        tuple
+            La position convertie dans la grille (x, y).
+        """
+
         return int((x//256) - (cam_x//256)) + 14, int((y//256) - (cam_y//256)) + 15
 
-    def check_npc_seller(self, npc_x, npc_y):
+    def check_npc_seller(self, npc_x, npc_y, npc_health):
+        """
+        Vérifie les achats avec un PNJ.
+
+        Parameters
+        ----------
+        npc_x : int
+            Position x du PNJ.
+        npc_y : int
+            Position y du PNJ.
+        npc_health : int
+            Vie du PNJ.
+
+        Returns
+        -------
+        int
+            Le montant total de l'argent obtenu grâce aux achats du PNJ.
+        """
         new_item_list = []
         total_money = 0
         for item in self.groud_item_list:
-            if item.pos_x <= npc_x < item.pos_x+64 and item.pos_y <= npc_y < item.pos_y+64:
+            if item.pos_x <= npc_x < item.pos_x+64 and item.pos_y <= npc_y < item.pos_y+64 and npc_health > 0:
                 total_money += item.item.price
                 item.item.sprite.delete()
                 continue
@@ -603,6 +1254,30 @@ class GroundItemManager:
         return total_money
 
     def update(self, inventory, player_x, player_y, player_selection, cam_x, cam_y, delta_t):
+        """
+        Met à jour les objets au sol.
+
+        Parameters
+        ----------
+        inventory : Inventory
+            L'inventaire du joueur.
+        player_x : int
+            Position x du joueur.
+        player_y : int
+            Position y du joueur.
+        player_selection : bool
+            Sélection du joueur.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        None.
+        """
         new_item_list = []
         for item in self.groud_item_list:
             grid_x, grid_y = self.pixel_to_grid_cos(item.pos_x, item.pos_y, cam_x, cam_y)

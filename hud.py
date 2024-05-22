@@ -1,10 +1,35 @@
+"""
+Gestion de l'affichage du HUD (Head-Up Display), incluant les indicateurs de position de la voiture, la santé du joueur, l'argent, et l'heure dans le jeu.
+"""
+
 import pyglet
 import numpy as np
 from worldsprite import WorldSprite
 
 
 class CarIndicatorHud:
+    """
+    Classe pour gérer l'affichage de l'indicateur de position de la voiture sur le HUD.
+    """
     def __init__(self, size_x, size_y, scale, batch):
+        """
+        Initialise l'indicateur de position de la voiture.
+
+        Parameters
+        ----------
+        size_x : int
+            Largeur de la fenêtre.
+        size_y : int
+            Hauteur de la fenêtre.
+        scale : float
+            Échelle de l'affichage.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self.batch = batch
@@ -12,9 +37,46 @@ class CarIndicatorHud:
         self.car_circle = pyglet.shapes.Circle(x=100, y=150, batch=batch, radius=8, color=(255, 41, 41))
 
     def get_relative_pos(self, x, y, cam_x, cam_y):
-            return x - cam_x, y - cam_y
+        """
+        Calcule la position relative d'un point par rapport à la caméra.
+
+        Parameters
+        ----------
+        x : int
+            Position x du point.
+        y : int
+            Position y du point.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        tuple
+            La position relative (x, y) par rapport à la caméra.
+        """
+        return x - cam_x, y - cam_y
 
     def update(self, car_x, car_y, cam_x, cam_y):
+        """
+        Met à jour la position et la visibilité de l'indicateur de voiture.
+
+        Parameters
+        ----------
+        car_x : int
+            Position x de la voiture.
+        car_y : int
+            Position y de la voiture.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         rel_x, rel_y = self.get_relative_pos(car_x, car_y, cam_x, cam_y)
         if 0 <= rel_x < self._SIZE_X :
             if 0 <= rel_y < self._SIZE_Y :
@@ -35,7 +97,28 @@ class CarIndicatorHud:
 
 
 class Hud:
+    """
+    Classe pour gérer l'affichage du HUD du joueur.
+    """
     def __init__(self, size_x, size_y, scale, batch):
+        """
+        Initialise le HUD du joueur.
+
+        Parameters
+        ----------
+        size_x : int
+            Largeur de la fenêtre.
+        size_y : int
+            Hauteur de la fenêtre.
+        scale : float
+            Échelle de l'affichage.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = size_x
         self._SIZE_Y = size_y
         self.group = pyglet.graphics.Group(1)
@@ -52,9 +135,50 @@ class Hud:
         self.map_circle.visible = False
 
     def pixel_pos_to_world(self, x, y):
+        """
+        Convertit une position en pixels à une position dans le monde.
+
+        Parameters
+        ----------
+        x : int
+            Position x en pixels.
+        y : int
+            Position y en pixels.
+
+        Returns
+        -------
+        tuple
+            La position (x, y) dans le monde.
+        """
         return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/256), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/256))
 
     def update(self, inputo, player_health, player_money, time_of_day, car_x, car_y, cam_x, cam_y):
+        """
+        Met à jour les éléments affichés sur le HUD.
+
+        Parameters
+        ----------
+        inputo : Input
+            Objet contenant les entrées du joueur.
+        player_health : float
+            Santé actuelle du joueur.
+        player_money : float
+            Montant d'argent du joueur.
+        time_of_day : float
+            Temps actuel du jeu.
+        car_x : int
+            Position x de la voiture.
+        car_y : int
+            Position y de la voiture.
+        cam_x : int
+            Position x de la caméra.
+        cam_y : int
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.car_indicator.update(car_x, car_y, cam_x, cam_y)
         if player_health < 0:
             player_health = 0

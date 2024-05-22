@@ -1,5 +1,31 @@
+"""
+Ce module contient la définition de la classe City et la liste des villes.
+"""
+
 class City:
+    """
+    Représente une ville dans le jeu.
+    """
     def __init__(self, name, x, y, data):
+        """
+        Initialise une instance de la classe City.
+
+        Parameters
+        ----------
+        name : str
+            Le nom de la ville.
+        x : int
+            La position x de la ville sur la carte.
+        y : int
+            La position y de la ville sur la carte.
+        data : tuple
+            Les données de la ville, une grille contenant
+            l'information de chaque bâtiment.
+
+        Returns
+        -------
+        None.
+        """
         self.name = name
         self.x = x
         self.y = y

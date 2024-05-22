@@ -1,3 +1,7 @@
+"""
+Module de gestion des personnages non-joueurs (NPC) comprenant les marcheurs et les véhicules.
+"""
+
 import pyglet
 import random
 import numpy as np
@@ -5,7 +9,7 @@ from worldsprite import WorldSprite
 from player import Bullet
 from inventory import Weapon, WEAPON_MODELS
 from city import City, cities
-from inventory import GroundItemManager
+from inventory import GroundItemManager, BulletBox
 import astar
 
 
@@ -28,8 +32,38 @@ for image in NPC_CARS:
 NPC_CARS = tuple(NPC_CARS)
 
 
+BULLETS_TYPES = ("9mm", "7.62mm", "20mm")
+
+
 class NpcWalker:
+    """
+    Classe pour gérer les personnages non-joueurs (NPC) marcheurs.
+    """
     def __init__(self, x, y, health, npctype, weapon, incar, batch):
+        """
+        Initialise un NPC marcheur.
+
+        Parameters
+        ----------
+        x : float
+            Position horizontale du NPC.
+        y : float
+            Position verticale du NPC.
+        health : int
+            Points de vie du NPC.
+        npctype : int
+            Type du NPC.
+        weapon : Weapon
+            Arme du NPC.
+        incar : bool
+            Indique si le NPC est dans un véhicule.
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self.x = x
         self.y = y
         self.npctype = npctype
@@ -54,11 +88,27 @@ class NpcWalker:
         self.shot_sound = pyglet.media.load("snd/gun.mp3", streaming=False)
 
     def choose_weapon(self):
+        """
+        Choisis aléatoirement une arme pour le NPC.
+
+        Returns
+        -------
+        Weapon
+            Arme choisie.
+        """
         if self.npctype == 0 or self.npctype == 3:
             return None
         return Weapon(WEAPON_MODELS[random.randint(0, len(WEAPON_MODELS)-1)], 0, 0, 0, 0, 0)
 
     def choose_objective(self):
+        """
+        Choisis aléatoirement un objectif pour le NPC.
+
+        Returns
+        -------
+        tuple
+            Coordonnées de l'objectif (x, y).
+        """
         distances = []
         for city in cities:
             distances.append(np.sqrt((self.x-(city.x*256))**2 + (self.y-(city.y*256))**2))
@@ -66,18 +116,91 @@ class NpcWalker:
         return cities[min_city].x*256 + random.uniform(-1, 1)*256, cities[min_city].y*256 + random.uniform(-1, 1)*256
 
     def check_bullet_hit(self, bullet):
+        """
+        Vérifie si le NPC a été touché par une balle.
+
+        Parameters
+        ----------
+        bullet : Bullet
+            Balle tirée.
+
+        Returns
+        -------
+        None.
+        """
         if self.x < bullet.pos_x < self.x+32:
             if self.y < bullet.pos_y < self.y+32:
                 self.health -= bullet.damage
                 self.stress += 1
 
     def grid_cos_to_pixel(self, grid_x, grid_y, cam_x, cam_y):
+        """
+        Convertit les coordonnées de la grille en coordonnées pixel.
+
+        Parameters
+        ----------
+        grid_x : int
+            Coordonnée x dans la grille.
+        grid_y : int
+            Coordonnée y dans la grille.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        tuple
+            Coordonnées pixel converties (x, y).
+        """
         return (256*grid_x) + cam_x - (14*256), (256*grid_y) + cam_y - (15*256)
 
     def pixel_to_grid_cos(self, x, y, cam_x, cam_y):
+        """
+        Convertit les coordonnées pixel en coordonnées de la grille.
+
+        Parameters
+        ----------
+        x : float
+            Coordonnée x en pixels.
+        y : float
+            Coordonnée y en pixels.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        tuple
+            Coordonnées de la grille (grid_x, grid_y).
+        """
         return int((x//256) - (cam_x//256)) + 14, int((y//256) - (cam_y//256)) + 15
 
     def find_grid_side_from_dir(self, x, y, cam_x, cam_y, dir_x, dir_y):
+        """
+        Trouve le côté de la grille à partir de la direction donnée.
+
+        Parameters
+        ----------
+        x : float
+            Position x du NPC.
+        y : float
+            Position y du NPC.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+        dir_x : float
+            Direction x.
+        dir_y : float
+            Direction y.
+
+        Returns
+        -------
+        tuple
+            Coordonnées de la grille (grid_x, grid_y).
+        """
         pos_x, pos_y = x+dir_x, y+dir_y
         while 1:
             pos_x += dir_x
@@ -90,6 +213,23 @@ class NpcWalker:
         return None
 
     def get_mov_from_dir(self, dir_x, dir_y, delta_t):
+        """
+        Obtient le mouvement à partir de la direction donnée.
+
+        Parameters
+        ----------
+        dir_x : float
+            Direction x.
+        dir_y : float
+            Direction y.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        tuple
+            Mouvement (mov_x, mov_y).
+        """
         mov_x, mov_y = dir_x, dir_y
         self.speed_objective = 90
         if self.stress > 1:
@@ -99,6 +239,29 @@ class NpcWalker:
         return mov_x, mov_y
 
     def get_mov_to_point(self, x2, y2, obstacle_map, cam_x, cam_y, delta_t):
+        """
+        Obtient le mouvement vers un point donné.
+
+        Parameters
+        ----------
+        x2 : float
+            Coordonnée x de la destination.
+        y2 : float
+            Coordonnée y de la destination.
+        obstacle_map : array
+            Carte des obstacles.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        tuple
+            Mouvement (mov_x, mov_y).
+        """
         dir_x, dir_y = x2-self.x, y2-self.y
         dir_inten = np.sqrt(dir_x**2+dir_y**2)
         dir_x, dir_y = dir_x/dir_inten, dir_y/dir_inten
@@ -118,15 +281,61 @@ class NpcWalker:
         return mov_x, mov_y
 
     def update_sprite(self, cam_x, cam_y):
+        """
+        Met à jour le sprite du NPC.
+
+        Parameters
+        ----------
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+
+        Returns
+        -------
+        None.
+        """
         self.sprite.rotation = np.degrees(np.arctan2(self.mov_y, self.mov_x)*(-1) + (np.pi/2))
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
     
     def get_distance_to_player(self, player_x, player_y):
+        """
+        Obtient la distance jusqu'au joueur.
+
+        Parameters
+        ----------
+        player_x : float
+            Position x du joueur.
+        player_y : float
+            Position y du joueur.
+
+        Returns
+        -------
+        float
+            Distance jusqu'au joueur.
+        """
         dist_x = self.x-player_x
         dist_y = self.y-player_y
         return np.sqrt(dist_x**2 + dist_y**2)
 
     def weapon_update(self, player_x, player_y, delta_t):
+        """
+        Met à jour l'agissement au niveau des armes du NPC.
+
+        Parameters
+        ----------
+        player_x : float
+            Position x du joueur.
+        player_y : float
+            Position y du joueur.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        Bullet or None
+            Balle tirée ou None.
+        """
         self.last_shot += delta_t
         self.time_since_load += delta_t
         if self.weapon == None:
@@ -150,6 +359,29 @@ class NpcWalker:
         return None
 
     def update(self, player_x, player_y, cam_x, cam_y, obstacle_map, delta_t):
+        """
+        Met à jour le NPC.
+
+        Parameters
+        ----------
+        player_x : float
+            Position x du joueur.
+        player_y : float
+            Position y du joueur.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+        obstacle_map : array
+            Carte des obstacles.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        Bullet or None
+            Balle tirée ou None.
+        """
         if self.health <= 0:
             self.sprite.image = NPC_MORT_IMAGES[self.chosen_image]
             self.update_sprite(cam_x, cam_y)
@@ -187,44 +419,80 @@ class NpcWalker:
         return None
 
 
-class NpcCar:
-    def __init__(self, x, y, occupant, batch):
-        self.x = x
-        self.y = y
-        self.npctype = npctype
-        self.occupant = occupant
-        self.sprite = WorldSprite(batch=batch, img=NPC_CARS[0], x=0, y=0)
-
-    def update_sprite(self, cam_x, cam_y):
-        self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
-
-
-
 class NpcManager:
+    """
+    Classe pour gérer les NPC.
+    """
     def __init__(self, batch):
+        """
+        Initialise le gestionnaire de NPC.
+
+        Parameters
+        ----------
+        batch : pyglet.graphics.Batch
+            Groupe de batch pyglet pour l'affichage.
+
+        Returns
+        -------
+        None.
+        """
         self.batch = batch
         self.npcs = [NpcWalker(0, 0, 100, 0, Weapon(WEAPON_MODELS[0], 0, 0, 0, 0, 0), False, self.batch)]
         #self.npcs_cars = []
         self.scream_sound = pyglet.media.load("snd/scream.mp3", streaming=False)
         self.scream_player = pyglet.media.Player()
     
-    def update(self, bullet_manager, item_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
+    def update(self, bullet_manager, item_manager, player_x, player_y, heal_player, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
+        """
+        Met à jour le gestionnaire de NPC.
+
+        Parameters
+        ----------
+        bullet_manager : BulletManager
+            Gestionnaire de balles.
+        item_manager : ItemManager
+            Gestionnaire d'objets.
+        player_x : float
+            Position x du joueur.
+        player_y : float
+            Position y du joueur.
+        cam_x : float
+            Position x de la caméra.
+        cam_y : float
+            Position y de la caméra.
+        obstacle_map : array
+            Carte des obstacles.
+        bullet_list_player : list
+            Liste des balles du joueur.
+        bullet_list_ennemy : list
+            Liste des balles ennemies.
+        delta_t : float
+            Temps écoulé depuis la dernière mise à jour.
+
+        Returns
+        -------
+        float
+            Argent total collecté.
+        """
         new_npcs = []
         total_money = 0
         for npc in self.npcs:
             grid_x, grid_y = npc.pixel_to_grid_cos(npc.x, npc.y, cam_x, cam_y)
-            if not 1 <= grid_x < 29 or not 1 <= grid_y < 29:
+            if not 0 <= grid_x < 30 or not 0 <= grid_y < 30:
                 continue
             new_npcs.append(npc)
             if npc.npctype == 3:
-                total_money += item_manager.check_npc_seller(npc.x, npc.y)
+                total_money += item_manager.check_npc_seller(npc.x, npc.y, npc.health)
             for bullet in bullet_list_player:
                 npc.check_bullet_hit(bullet)
                 if npc.health <= 0 and not npc.dead:
                     self.scream_player.queue(self.scream_sound)
                     self.scream_player.play()
                     npc.dead = True
+                    heal_player(20)
                     item_manager.add_item(npc.weapon, npc.x, npc.y)
+                    if npc.npctype == 3:
+                        item_manager.add_item(BulletBox(BULLETS_TYPES[random.randint(0, 2)], random.randint(1, 20)), npc.x, npc.y)
             bullet = npc.update(player_x, player_y, cam_x, cam_y, obstacle_map, delta_t)
             if bullet != None:
                 bullet_manager.add_bullet(bullet, False)

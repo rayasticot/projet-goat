@@ -1,3 +1,7 @@
+"""
+Module pour la conversion d'une carte de température et de précipitations en une carte de biomes.
+"""
+
 from PIL import Image
 
 index = ((42, 42, 42, 255), (84, 84, 84, 255), (126, 126, 126, 255), (168, 168, 168, 255), (210, 210, 210, 255))

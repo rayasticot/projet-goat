@@ -1,8 +1,23 @@
+"""
+Module pour la gestion des entrées utilisateur dans le jeu.
+"""
+
 import pyglet
 
 
 class Input:
+    """
+    Classe pour gérer les entrées utilisateur dans le jeu.
+    """
     def __init__(self):
+        """
+        Initialise les états des différentes entrées utilisateur.
+
+        Returns
+        -------
+        None.
+        """
+
         self.up = 0
         self.dw = 0
         self.rg = 0

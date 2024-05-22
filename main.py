@@ -1,3 +1,7 @@
+"""
+Module principal
+"""
+
 import argparse
 
 import pyglet
@@ -9,7 +13,24 @@ from keymap import Keymap
 
 
 class Game(pyglet.window.Window):
+    """
+    Classe principale gérant le jeu.
+    """
     def __init__(self, scale=3, keymap="qwerty"):
+        """
+        Initialise la fenêtre de jeu.
+
+        Parameters
+        ----------
+        scale : int, optional
+            Échelle de la fenêtre. The default is 3.
+        keymap : str, optional
+            Mappage des touches. The default is "qwerty".
+
+        Returns
+        -------
+        None.
+        """
         self._SIZE_X = 640
         self._SIZE_Y = 360
         self._window_scale = scale
@@ -21,6 +42,18 @@ class Game(pyglet.window.Window):
         self.scene = TitleScreen(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self)
 
     def switch_scene(self, new_scene):
+        """
+        Change la scène du jeu.
+
+        Parameters
+        ----------
+        new_scene : int
+            Nouvelle scène à afficher.
+
+        Returns
+        -------
+        None.
+        """
         pyglet.clock.unschedule(self.scene.update)
         match new_scene:
             case -1:
@@ -31,12 +64,33 @@ class Game(pyglet.window.Window):
                 self.scene = MainGameScene(self._window_scale, self._SIZE_X, self._SIZE_Y, self._inputo, self, self.worldgen)
 
     def on_draw(self):
+        """
+        Méthode appelée lors du dessin de la fenêtre.
+
+        Returns
+        -------
+        None.
+        """
         self.switch_to()
         self.clear()
         self.scene.draw()
         self._fps_display.draw()
 
     def on_key_press(self, symbol, modifiers):
+        """
+        Méthode appelée lorsqu'une touche est pressée.
+
+        Parameters
+        ----------
+        symbol : int
+            Code de la touche.
+        modifiers : int
+            Modificateurs.
+
+        Returns
+        -------
+        None.
+        """
         match(self.keymap.get_action(symbol)):
             case "UP":
                 self._inputo.up = 1
@@ -58,6 +112,20 @@ class Game(pyglet.window.Window):
                 self._inputo.map = 1
 
     def on_key_release(self, symbol, modifiers):
+        """
+        Méthode appelée lorsqu'une touche est relâchée.
+
+        Parameters
+        ----------
+        symbol : int
+            Code de la touche.
+        modifiers : int
+            Modificateurs.
+
+        Returns
+        -------
+        None.
+        """
         match(self.keymap.get_action(symbol)):
             case "UP":
                 self._inputo.up = 0
@@ -79,22 +147,99 @@ class Game(pyglet.window.Window):
                 self._inputo.map = 0
 
     def on_mouse_motion(self, x, y, dx, dy):
+        """
+        Méthode appelée lors du mouvement de la souris.
+
+        Parameters
+        ----------
+        x : int
+            Position x de la souris.
+        y : int
+            Position y de la souris.
+        dx : int
+            Déplacement en x de la souris.
+        dy : int
+            Déplacement en y de la souris.
+
+        Returns
+        -------
+        None.
+        """
         self._inputo.mx = x
         self._inputo.my = y
 
     def on_mouse_press(self, x, y, button, modifiers):
+        """
+        Méthode appelée lorsqu'un bouton de la souris est encastré.
+
+        Parameters
+        ----------
+        x : int
+            Position x de la souris.
+        y : int
+            Position y de la souris.
+        button : int
+            Code du bouton de la souris.
+        modifiers : int
+            Modificateurs.
+
+        Returns
+        -------
+        None.
+        """
+
         if button == pyglet.window.mouse.LEFT:
             self._inputo.lclick = 1
         if button == pyglet.window.mouse.RIGHT:
             self._inputo.rclick = 1
 
     def on_mouse_release(self, x, y, button, modifiers):
+        """
+        Méthode appelée lorsqu'un bouton de la souris est relâché.
+
+        Parameters
+        ----------
+        x : int
+            Position x de la souris.
+        y : int
+            Position y de la souris.
+        button : int
+            Code du bouton de la souris.
+        modifiers : int
+            Modificateurs.
+
+        Returns
+        -------
+        None.
+        """
         if button == pyglet.window.mouse.LEFT:
             self._inputo.lclick = 0
         if button == pyglet.window.mouse.RIGHT:
             self._inputo.rclick = 0
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        """
+        Méthode appelée lors du déplacement de la souris en maintenant un bouton enfoncé.
+
+        Parameters
+        ----------
+        x : int
+            Position x de la souris.
+        y : int
+            Position y de la souris.
+        dx : int
+            Déplacement en x de la souris.
+        dy : int
+            Déplacement en y de la souris.
+        buttons : int
+            Boutons enfoncés.
+        modifiers : int
+            Modificateurs.
+
+        Returns
+        -------
+        None.
+        """
         self._inputo.mx = x
         self._inputo.my = y
 

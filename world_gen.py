@@ -1,3 +1,7 @@
+"""
+Module contenant les classes et fonctions liées à la génération du monde.
+"""
+
 import pyglet
 from pyglet.gl import *
 import numpy as np
@@ -22,6 +26,7 @@ vertex_source = """#version 330 core
     }
 """
 
+# Shader principale de la génération du monde
 fragment_source = """#version 330 core
         in vec3 texture_coords;
         uniform vec2 cam_coords;
@@ -274,7 +279,34 @@ fragment_source = """#version 330 core
 
 
 class WorldGenGroup(pyglet.graphics.Group):
+    """
+    Groupe de dessin pour la génération du monde.
+    """
     def __init__(self, alpha, tile_offset, size_x, size_y, textures, map_texture, shaderprogram):
+        """
+        Initialise le groupe de dessin du monde.
+
+        Parameters
+        ----------
+        alpha : float
+            Transparence.
+        tile_offset : int
+            Décalage de la texture.
+        size_x : int
+            Taille en largeur.
+        size_y : int
+            Taille en hauteur.
+        textures : tuple
+            Textures des tuiles.
+        map_texture : Texture
+            Texture de la carte.
+        shaderprogram : ShaderProgram
+            Programme de shader.
+        
+        Returns
+        -------
+        None.
+        """
         super().__init__()
         self.textures = textures
         self.map_texture = map_texture
@@ -293,12 +325,64 @@ class WorldGenGroup(pyglet.graphics.Group):
         self._SIZE_Y = size_y
 
     def pixel_to_screen(self, x, y):
+        """
+        Convertit les coordonnées de pixel en coordonnées d'écran.
+
+        Parameters
+        ----------
+        x : int
+            Coordonnée x du pixel.
+        y : int
+            Coordonnée y du pixel.
+        
+        Returns
+        -------
+        tuple
+            Coordonnées d'écran converties.
+        """
         return x/self._SIZE_X, y/self._SIZE_Y
 
     def pixel_pos_to_world(self, x, y):
+        """
+        Convertit les coordonnées de pixel en coordonnées du monde.
+
+        Parameters
+        ----------
+        x : int
+            Coordonnée x du pixel.
+        y : int
+            Coordonnée y du pixel.
+        
+        Returns
+        -------
+        tuple
+            Coordonnées du monde converties.
+        """
         return int((x+np.sin((y+self._SIZE_X)*0.0625)*8)/256), (-int(((y+self._SIZE_Y)+np.cos(x*0.0625)*8)/256))
 
     def update(self, time_of_day, cam_x, cam_y, car_x, car_y, car_angle):
+        """
+        Met à jour les paramètres du monde.
+
+        Parameters
+        ----------
+        time_of_day : float
+            Heure du jour.
+        cam_x : float
+            Coordonnée x de la caméra.
+        cam_y : float
+            Coordonnée y de la caméra.
+        car_x : float
+            Coordonnée x de la voiture.
+        car_y : float
+            Coordonnée y de la voiture.
+        car_angle : float
+            Angle de la voiture.
+        
+        Returns
+        -------
+        None.
+        """
         self.time_of_day = time_of_day
         self.cam_x, self.cam_y = self.pixel_to_screen(cam_x, cam_y)
         self.car_x, self.car_y = self.pixel_to_screen((car_x-cam_x)+np.cos(car_angle)*16, (car_y-cam_y)+np.sin(car_angle)*16)
@@ -307,6 +391,13 @@ class WorldGenGroup(pyglet.graphics.Group):
         #print(self.pixel_pos_to_world(cam_x, cam_y))
 
     def set_state(self):
+        """
+        Configure l'état pour le rendu.
+
+        Returns
+        -------
+        None.
+        """
         self.program.use()
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(self.map_texture.target, self.map_texture.id)
@@ -373,11 +464,37 @@ class WorldGenGroup(pyglet.graphics.Group):
         #self.program["tex2"] = self.tex2.id
 
     def unset_state(self):
+        """
+        Rétablit l'état après le rendu.
+
+        Returns
+        -------
+        None.
+        """
         self.program.stop()
 
 
 class WorldGen:
+    """
+    Classe pour la génération du monde.
+    """
     def __init__(self, scale, size_x, size_y):
+        """
+        Initialise la génération du monde.
+
+        Parameters
+        ----------
+        scale : int
+            Échelle.
+        size_x : int
+            Taille en largeur.
+        size_y : int
+            Taille en hauteur.
+        
+        Returns
+        -------
+        None.
+        """
         mape = pyglet.image.load("map/biome_map.png")
         tiles = (pyglet.image.load("img/tiles/eau.png"),
                  pyglet.image.load("img/tiles/tes0.png"),

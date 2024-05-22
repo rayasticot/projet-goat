@@ -198,12 +198,6 @@ class NpcCar:
     def update_sprite(self, cam_x, cam_y):
         self.sprite.set_relative_pos(self.x, self.y, cam_x, cam_y)
 
-    def update(self, cam_x, cam_y, obstacle_map):
-        if occupant != None:
-            match(self.occupant.npctype):
-                case 0:
-                    pass
-        self.update_sprite(cam_x, cam_y)
 
 
 class NpcManager:

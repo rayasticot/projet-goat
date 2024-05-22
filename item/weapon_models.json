@@ -12,7 +12,8 @@
             "rate": 10,
             "reach": 5000,
             "accuracy": 1,
-            "damage": 29
+            "damage": 29,
+            "price": 2000
         },
 
         {
@@ -27,7 +28,8 @@
             "rate": 1,
             "reach": 2000,
             "accuracy": 6,
-            "damage": 70
+            "damage": 70,
+            "price": 600
         },
 
         {
@@ -42,7 +44,8 @@
             "rate": 17,
             "reach": 5000,
             "accuracy": 1,
-            "damage": 20
+            "damage": 20,
+            "price": 2200
         },
 
         {
@@ -57,7 +60,8 @@
             "rate": 3,
             "reach": 1500,
             "accuracy": 3,
-            "damage": 15
+            "damage": 15,
+            "price": 300
         },
 
         {
@@ -72,7 +76,8 @@
             "rate": 13,
             "reach": 5000,
             "accuracy": 2,
-            "damage": 35
+            "damage": 35,
+            "price": 1700
         },
 
         {
@@ -84,10 +89,11 @@
             "capacity": 30,
             "loadtime": 1.5,
             "bullet_type": "9mm",
-            "rate": 15,
+            "rate": 25,
             "reach": 2000,
             "accuracy": 4,
-            "damage": 18
+            "damage": 9,
+            "price": 1560
         },
 
         {
@@ -102,7 +108,8 @@
             "rate": 3,
             "reach": 1000,
             "accuracy": 3,
-            "damage": 10
+            "damage": 10,
+            "price": 229
         }
     ]
 }

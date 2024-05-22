@@ -15,3 +15,4 @@ class Input:
         self.lclick = 0
         self.rclick = 0
         self.reload = 0
+        self.map = 0

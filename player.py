@@ -97,8 +97,6 @@ class WeaponControl:
         self.batch = batch
         self.shot_sound = pyglet.media.load("snd/gun.mp3", streaming=False)
         self.reload_sound = pyglet.media.load("snd/reload.mp3", streaming=False)
-        self.shot_player = pyglet.media.Player()
-        self.reload_player = pyglet.media.Player()
 
     def update(self, pos_x, pos_y, dir_x, dir_y, inputo, dt):
         self.pos_x = pos_x
@@ -115,8 +113,7 @@ class WeaponControl:
             inputo.reload = 0
             if self.weapon.loaded < self.weapon.capacity and self.time_since_load > self.weapon.loadtime:
                 self.weapon.loaded = self.inventory.take_bullets(self.weapon.bullet_type, self.weapon.capacity)
-                self.reload_player.queue(self.reload_sound)
-                self.reload_player.play()
+                self.reload_sound.play()
                 if self.weapon.loaded > 0:
                     self.time_since_load = 0
         if inputo.lclick:
@@ -125,8 +122,7 @@ class WeaponControl:
             if self.last_shot > 1/self.weapon.rate:
                 self.last_shot = 0
                 self.weapon.loaded -= 1
-                self.shot_player.queue(self.shot_sound)
-                self.shot_player.play()
+                self.shot_sound.play()
                 return Bullet(pos_x, pos_y, dir_x, dir_y, self.weapon.reach, self.weapon.damage, self.weapon.accuracy, self.batch)
         return None
 
@@ -397,7 +393,9 @@ class Player:
         self.cam_y = int(pos_y) - (size_y//2)
         self.selection = 1
         self.health = 100
+        self.money = 0
         self.death_time = 0
+        self.death_played = False
         self.playercar = PlayerCar(batch, pos_x, pos_y, size_x, size_y, scale)
         self.playerwalker = PlayerWalker(batch, pos_x, pos_y, size_x, size_y, scale)
         self.weaponcontrol = WeaponControl(pos_x, pos_y, inventory, batch)
@@ -431,6 +429,10 @@ class Player:
 
     def update(self, inputo, delta_t, obstacles):
         if self.health <= 0:
+            if not self.death_played:
+                self.death = pyglet.media.load('snd/death.mp3')
+                self.death.play()
+                self.death_played = True
             self.playerwalker.sprite.image = self.playerwalker.m_image
             self.playerwalker.update_sprite(self.cam_x, self.cam_y)
             self.playercar.update_sprite(self.cam_x, self.cam_y)
@@ -444,11 +446,12 @@ class Player:
                 car_dir_y = self.playercar.pos_y - self.playerwalker.pos_y
                 car_dir_inten = np.sqrt(car_dir_x**2 + car_dir_y**2)
                 if car_dir_inten < 8:
+                    self.playerwalker.step_player.pause()
                     self.selection = 0
                     inputo.getin = 0
                     self.playercar.stop()
                     self.playerwalker.sprite.visible = False
-                    #self.radio()
+                    self.radio()
                 if car_dir_inten < 256:
                     car_dir_x, car_dir_y = (car_dir_x/car_dir_inten)*8*delta_t, (car_dir_y/car_dir_inten)*8*delta_t
                     self.playerwalker.update(inputo, delta_t, obstacles, self.cam_x, self.cam_y, car_dir_x, car_dir_y)

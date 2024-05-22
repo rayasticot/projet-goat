@@ -6,5 +6,6 @@
     "SPACE": "BRAKE",
     "F": "INTERACT",
     "TAB": "OPENINV",
-    "R": "RELOAD"
+    "R": "RELOAD",
+    "M": "MAP"
 }

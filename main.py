@@ -54,6 +54,8 @@ class Game(pyglet.window.Window):
                 self._inputo.openinv = 1
             case "RELOAD":
                 self._inputo.reload = 1
+            case "MAP":
+                self._inputo.map = 1
 
     def on_key_release(self, symbol, modifiers):
         match(self.keymap.get_action(symbol)):
@@ -73,6 +75,8 @@ class Game(pyglet.window.Window):
                 self._inputo.openinv = 0
             case "RELOAD":
                 self._inputo.reload = 0
+            case "MAP":
+                self._inputo.map = 0
 
     def on_mouse_motion(self, x, y, dx, dy):
         self._inputo.mx = x

@@ -5,6 +5,7 @@ from worldsprite import WorldSprite
 from player import Bullet
 from inventory import Weapon, WEAPON_MODELS
 from city import City, cities
+from inventory import GroundItemManager
 import astar
 
 
@@ -139,9 +140,7 @@ class NpcWalker:
         if self.time_since_load < self.weapon.loadtime:
             return None
         if self.last_shot > 1/self.weapon.rate:
-            self.shot_player = pyglet.media.Player()
-            self.shot_player.queue(self.shot_sound)
-            self.shot_player.play()
+            self.shot_sound.play()
             self.last_shot = 0
             self.weapon.loaded -= 1
             dir_x, dir_y = player_x-self.x, player_y-self.y
@@ -217,11 +216,14 @@ class NpcManager:
     
     def update(self, bullet_manager, item_manager, player_x, player_y, cam_x, cam_y, obstacle_map, bullet_list_player, bullet_list_ennemy, delta_t):
         new_npcs = []
+        total_money = 0
         for npc in self.npcs:
             grid_x, grid_y = npc.pixel_to_grid_cos(npc.x, npc.y, cam_x, cam_y)
             if not 1 <= grid_x < 29 or not 1 <= grid_y < 29:
                 continue
             new_npcs.append(npc)
+            if npc.npctype == 3:
+                total_money += item_manager.check_npc_seller(npc.x, npc.y)
             for bullet in bullet_list_player:
                 npc.check_bullet_hit(bullet)
                 if npc.health <= 0 and not npc.dead:
@@ -233,3 +235,4 @@ class NpcManager:
             if bullet != None:
                 bullet_manager.add_bullet(bullet, False)
         self.npcs = new_npcs
+        return total_money

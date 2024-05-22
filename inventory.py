@@ -53,6 +53,7 @@ class WeaponModel:
         self.reach = modelinfo["reach"]
         self.accuracy = modelinfo["accuracy"]
         self.damage = modelinfo["damage"]
+        self.price = modelinfo["price"]
 
 
 class Weapon(Item):    
@@ -66,6 +67,7 @@ class Weapon(Item):
         self.accuracy = model.accuracy + model.accuracy*accuracy_dmg
         self.damage = model.damage - model.damage*damage_dmg
         self.loaded = loaded
+        self.price = model.price
 
 
 class BulletBox(Item):
@@ -73,6 +75,7 @@ class BulletBox(Item):
         super().__init__(None, 4, BULLET_IMAGE[btype], btype, "", 0)
         self.btype = btype
         self.ammount = ammount
+        self.price = 100
 
 
 def load_weapons_models(filename):
@@ -586,6 +589,18 @@ class GroundItemManager:
 
     def pixel_to_grid_cos(self, x, y, cam_x, cam_y):
         return int((x//256) - (cam_x//256)) + 14, int((y//256) - (cam_y//256)) + 15
+
+    def check_npc_seller(self, npc_x, npc_y):
+        new_item_list = []
+        total_money = 0
+        for item in self.groud_item_list:
+            if item.pos_x <= npc_x < item.pos_x+64 and item.pos_y <= npc_y < item.pos_y+64:
+                total_money += item.item.price
+                item.item.sprite.delete()
+                continue
+            new_item_list.append(item)
+        self.groud_item_list = new_item_list
+        return total_money
 
     def update(self, inventory, player_x, player_y, player_selection, cam_x, cam_y, delta_t):
         new_item_list = []

@@ -40,7 +40,7 @@ class TitleScreen(Scene):
         self.prod = pyglet.media.load('snd/titre.wav')
         self.player = pyglet.media.Player()
         self.player.queue(self.prod)
-        self.player.eos_action = 'loop'
+        self.player.loop = True
         self.player.play()
         self.time = 0
 
@@ -97,6 +97,12 @@ class MainGameScene(Scene):
         self.fbo = pyglet.image.Framebuffer()
         self.fbo.attach_texture(self.overlay)
 
+        self.prod = pyglet.media.load('snd/ambiance.mp3')
+        self.prod_player = pyglet.media.Player()
+        self.prod_player.queue(self.prod)
+        self.prod_player.loop = True
+        self.prod_player.play()
+
         self.time_of_day = 120
 
         pyglet.clock.schedule_interval(self.update, 1/60)
@@ -130,7 +136,7 @@ class MainGameScene(Scene):
             self.bullet_manager.add_bullet(bullet, True)
         if self.player.death_time > 4:
             self._window.switch_scene(0)
-        self.npc_manager.update(\
+        self.player.money += self.npc_manager.update(\
             self.bullet_manager, self.item_manager, self.player.playerwalker.pos_x, self.player.playerwalker.pos_y,\
             self.cam_x, self.cam_y, self.tilingmap.occupation_grid, self.bullet_manager.bullet_list_player,\
             self.bullet_manager.bullet_list_ennemy, dt\
@@ -139,7 +145,7 @@ class MainGameScene(Scene):
         self.bullet_manager.update(dt, self.player, self.tilingmap.sprite_dict, self.cam_x, self.cam_y)
         self.cam_x = self.player.cam_x
         self.cam_y = self.player.cam_y
-        self.hud.update(self.player.health, self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
+        self.hud.update(self._inputo, self.player.health, self.player.money, self.time_of_day, self.player.playercar.x, self.player.playercar.y, self.cam_x, self.cam_y)
         self.worldgen.group.update(self.time_of_day, self.cam_x, self.cam_y, self.player.playercar.x, self.player.playercar.y, -np.radians(self.player.playercar.sprite.rotation-90))
         self.tilingmap.update(self.cam_x, self.cam_y)
         if self._inputo.openinv:
